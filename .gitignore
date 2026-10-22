@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.vite
+*.log
+.DS_Store
+# Derlenmiş VIA tanım paketi (scripts/build-definitions.mjs üretir)
+public/definitions
+.cache
+# Playwright
+/test-results
+/playwright-report

@@ -1,0 +1,764 @@
+import {packLayoutOptions, unpackLayoutOptions, vendorProductId} from '@/lib/bytes';
+import {encoderCount, layoutChoiceCounts, visibleKeys} from '@/definitions/geometry';
+import {menuCommands, resolveMenus, type MenuCommand} from '@/definitions/menus';
+import {definitionName, dynamicNameCommand, parseDefinition, type AnyDefinition, type DefinitionVersion} from '@/definitions/parse';
+import {findDefinition, readDefinitionFile, saveUserDefinition, type FoundDefinition} from '@/definitions/repository';
+import {createDemoKeyboard, demoDefinitionSource} from '@/emulator/demo';
+import {VirtualTransport} from '@/emulator/virtual-keyboard';
+import {KeycodeCodec} from '@/keycodes/codec';
+import {detectHostLayout} from '@/keycodes/host-layouts';
+import {db, getSetting, setSetting} from '@/storage/db';
+import {ViaApi} from '@/via/api';
+import {Command, Protocol, VIA_USAGE, VIA_USAGE_PAGE} from '@/via/constants';
+import {decodeMacros, encodeMacros, type Macro} from '@/via/macro-bytes';
+import {isViaInterface, ViaChannel, WebHidTransport, type HidTransport} from '@/via/transport';
+import {createBackup, planRestore, type BackupFile, type ViaSaveFile} from './backup';
+import {
+  defaultSettings,
+  getState,
+  setState,
+  toast,
+  updateData,
+  updateSession,
+  type KeyboardData,
+  type KeymapChange,
+  type Pane,
+  type SessionInfo,
+  type Settings,
+} from './store';
+
+type Controller = {transport: HidTransport; channel: ViaChannel; api: ViaApi; codec: KeycodeCodec; unsubscribe: () => void};
+
+const controllers = new Map<string, Controller>();
+
+export const getController = (id: string) => controllers.get(id);
+export const getCodec = (id: string | null) => (id ? controllers.get(id)?.codec : undefined);
+
+const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+// ---------------------------------------------------------------------------
+// App start-up and settings
+
+const detectOs = (): 'mac' | 'other' => {
+  const nav = navigator as Navigator & {userAgentData?: {platform?: string}};
+  const platform = nav.userAgentData?.platform ?? navigator.platform ?? '';
+  return /mac/i.test(platform) ? 'mac' : 'other';
+};
+
+export const updateSettings = async (patch: Partial<Settings>) => {
+  const settings = {...getState().settings, ...patch};
+  setState({settings});
+  await setSetting('settings', settings);
+};
+
+export const refreshAutoSettings = async () => {
+  const {settings} = getState();
+  const patch: Partial<Settings> = {};
+  if (settings.osAuto) patch.os = detectOs();
+  if (settings.hostLayoutAuto) {
+    const detected = await detectHostLayout();
+    if (detected) patch.hostLayout = detected;
+  }
+  if (Object.keys(patch).length) setState({settings: {...getState().settings, ...patch}});
+};
+
+let initialized = false;
+
+export const initApp = async () => {
+  if (initialized) return;
+  initialized = true;
+  const stored = await getSetting<Partial<Settings>>('settings', {});
+  setState({settings: {...defaultSettings, ...stored}});
+  await refreshAutoSettings();
+
+  const hid = (navigator as Navigator & {hid?: HID}).hid;
+  if (!hid) return;
+  hid.addEventListener('disconnect', (event) => {
+    const id = [...controllers.entries()].find(([, c]) => c.transport instanceof WebHidTransport && c.transport.device === event.device)?.[0];
+    if (id) void closeSession(id, true);
+  });
+  hid.addEventListener('connect', (event) => {
+    if (isViaInterface(event.device)) void openWebHidDevice(event.device);
+  });
+  // Re-open keyboards the user already granted access to.
+  try {
+    const devices = await hid.getDevices();
+    for (const device of devices.filter(isViaInterface)) await openWebHidDevice(device);
+  } catch {
+    // Permission policy may block WebHID.
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Connecting
+
+export const connectWebHid = async () => {
+  const hid = (navigator as Navigator & {hid?: HID}).hid;
+  if (!hid) {
+    toast('Bu tarayıcı WebHID desteklemiyor. Chrome veya Edge kullan.', 'error');
+    return;
+  }
+  let devices: HIDDevice[] = [];
+  try {
+    devices = await hid.requestDevice({filters: [{usagePage: VIA_USAGE_PAGE, usage: VIA_USAGE}]});
+  } catch (error) {
+    toast(`Cihaz seçilemedi: ${errorText(error)}`, 'error');
+    return;
+  }
+  const viaDevices = devices.filter(isViaInterface);
+  if (devices.length && !viaDevices.length) toast('Seçilen cihaz VIA arayüzü sunmuyor.', 'error');
+  for (const device of viaDevices) await openWebHidDevice(device, true);
+};
+
+const openWebHidDevice = async (device: HIDDevice, select = false) => {
+  const existing = [...controllers.entries()].find(([, c]) => c.transport instanceof WebHidTransport && c.transport.device === device);
+  if (existing) {
+    if (select) selectSession(existing[0]);
+    return;
+  }
+  await openTransport(new WebHidTransport(device), {select});
+};
+
+export const connectDemo = async () => {
+  const existing = Object.values(getState().sessions).find((s) => s.kind === 'virtual');
+  if (existing) {
+    selectSession(existing.id);
+    return;
+  }
+  const {definition} = await parseDefinition(demoDefinitionSource);
+  await openTransport(new VirtualTransport(createDemoKeyboard(), 1), {
+    select: true,
+    definition: {definition, version: 'v3', source: 'demo'},
+  });
+};
+
+const openTransport = async (transport: HidTransport, options: {select?: boolean; definition?: FoundDefinition} = {}) => {
+  const id = transport.id;
+  const info: SessionInfo = {
+    id,
+    kind: transport.kind,
+    vendorId: transport.vendorId,
+    productId: transport.productId,
+    vendorProductId: vendorProductId(transport.vendorId, transport.productId),
+    productName: transport.productName || 'Bilinmeyen klavye',
+    status: 'connecting',
+    progress: 'Bağlanıyor',
+  };
+  setState((s) => ({sessions: {...s.sessions, [id]: info}}));
+  if (options.select || !getState().selectedId) {
+    selectSession(id);
+    // A keyboard the user just picked should be shown, not hidden behind settings.
+    if (options.select && ['settings', 'definitions', 'backups'].includes(getState().pane)) setState({pane: 'keymap'});
+  }
+
+  const channel = new ViaChannel(transport);
+  try {
+    await channel.open();
+    const api = new ViaApi(channel);
+    const protocol = await api.getProtocolVersion();
+    let keycodesVersion: number | undefined;
+    if (protocol >= Protocol.KeycodesVersion) keycodesVersion = await api.getKeycodesVersion().catch(() => undefined);
+    const unsubscribe = channel.onUnsolicited((report) => {
+      if (report[0] === Command.UiSyncRequest) void syncMenuValues(id);
+    });
+    controllers.set(id, {transport, channel, api, codec: KeycodeCodec.forProtocol(protocol), unsubscribe});
+    updateSession(id, {protocol, keycodesVersion, progress: 'Tanım aranıyor'});
+
+    const found = options.definition ?? (await findDefinition(info.vendorProductId, protocol >= Protocol.V3Definitions ? 'v3' : 'v2'));
+    if (!found) {
+      updateSession(id, {status: 'needs-definition', progress: undefined});
+      return;
+    }
+    await loadKeyboard(id, found);
+  } catch (error) {
+    updateSession(id, {status: 'error', error: errorText(error), progress: undefined});
+  }
+};
+
+/** Reads everything VIA can configure from the keyboard. */
+const loadKeyboard = async (id: string, found: FoundDefinition) => {
+  const controller = controllers.get(id);
+  const session = getState().sessions[id];
+  if (!controller || !session) return;
+  const {api} = controller;
+  const protocol = session.protocol ?? 0;
+  const {definition} = found;
+  const matrix = definition.matrix;
+  updateSession(id, {status: 'loading', progress: 'Klavye okunuyor', error: undefined});
+  try {
+    const layerCount = await api.getLayerCount(protocol);
+
+    let layoutOptions: number[] = [];
+    const counts = layoutChoiceCounts(definition);
+    if (counts.length) {
+      const packed = await api.getLayoutOptions().catch(() => 0);
+      layoutOptions = unpackLayoutOptions(packed, counts);
+    }
+
+    updateSession(id, {progress: 'Tuş haritası okunuyor'});
+    const keymap = await api.readKeymap(layerCount, matrix, protocol);
+
+    const encoders: [number, number][][] = [];
+    let encodersSupported = encoderCount(definition);
+    if (encodersSupported > 0) {
+      try {
+        for (let layer = 0; layer < layerCount; layer++) {
+          const row: [number, number][] = [];
+          for (let e = 0; e < encodersSupported; e++) {
+            row.push([await api.getEncoder(layer, e, false), await api.getEncoder(layer, e, true)]);
+          }
+          encoders.push(row);
+        }
+      } catch {
+        // Firmware without ENCODER_MAP_ENABLE: knobs are handled in firmware.
+        encodersSupported = 0;
+        encoders.length = 0;
+      }
+    }
+
+    updateSession(id, {progress: 'Makrolar okunuyor'});
+    let macroCount = 0;
+    let macroBufferSize = 0;
+    let macroBytes: number[] = [];
+    try {
+      macroCount = await api.getMacroCount();
+      macroBufferSize = macroCount ? await api.getMacroBufferSize() : 0;
+      macroBytes = macroBufferSize ? await api.readMacroBuffer(macroBufferSize) : [];
+    } catch {
+      macroCount = 0;
+    }
+
+    const menus = protocol >= Protocol.V3Definitions ? resolveMenus(definition) : [];
+    const menuValues: Record<string, number[]> = {};
+    if (menus.length) {
+      updateSession(id, {progress: 'Işık ayarları okunuyor'});
+      for (const [name, command] of menuCommands(menus)) {
+        const [, ...bytes] = command;
+        try {
+          menuValues[name] = await api.getCustomValue(bytes);
+        } catch {
+          // Leave unsupported values out; their controls show as unavailable.
+        }
+      }
+    }
+
+    let firmwareVersion: number | undefined;
+    if (protocol >= Protocol.V3Definitions) firmwareVersion = await api.getFirmwareVersion().catch(() => undefined);
+    if (firmwareVersion !== undefined) menuValues.id_firmware_version = [firmwareVersion];
+
+    let dynamicNameIndex: number | undefined;
+    const nameCommand = dynamicNameCommand(definition);
+    if (nameCommand) dynamicNameIndex = (await api.getCustomValue(nameCommand).catch(() => [0]))[0];
+
+    const data: KeyboardData = {
+      definition,
+      definitionVersion: found.version,
+      definitionSource: found.source,
+      name: definitionName(definition, dynamicNameIndex),
+      matrix,
+      layerCount,
+      keymap,
+      encoders,
+      encoderCount: encodersSupported,
+      layoutOptions,
+      macroCount,
+      macroBufferSize,
+      macroBytes,
+      macros: macroCount ? decodeMacros(macroBytes, macroCount, protocol) : [],
+      menus,
+      menuValues,
+      matrixTesterSupported: true,
+    };
+    setState((s) => ({data: {...s.data, [id]: data}}));
+    updateSession(id, {status: 'ready', progress: undefined, firmwareVersion});
+    void autoBackup(id);
+  } catch (error) {
+    updateSession(id, {status: 'error', error: errorText(error), progress: undefined});
+  }
+};
+
+/** User supplied a JSON definition for a keyboard that had none. */
+export const provideDefinitionFile = async (id: string, file: File) => {
+  const session = getState().sessions[id];
+  if (!session) return;
+  try {
+    const {definition, version} = await readDefinitionFile(file);
+    if (definition.vendorProductId !== session.vendorProductId) {
+      const hex = (n: number) => `0x${n.toString(16).toUpperCase().padStart(4, '0')}`;
+      throw new Error(
+        `Bu dosya başka bir klavyeye ait (dosya: ${hex(definition.vendorProductId >>> 16)}:${hex(definition.vendorProductId & 0xffff)}, ` +
+          `klavye: ${hex(session.vendorId)}:${hex(session.productId)}).`,
+      );
+    }
+    await saveUserDefinition(definition, version);
+    toast(`${definitionName(definition)} tanımı kaydedildi. Bir daha yüklemene gerek yok.`, 'success');
+    await loadKeyboard(id, {definition, version, source: 'user'});
+  } catch (error) {
+    toast(errorText(error), 'error', 8000);
+  }
+};
+
+/** Stores a definition without a connected keyboard (definitions pane). */
+export const importDefinitionFile = async (file: File) => {
+  try {
+    const {definition, version} = await readDefinitionFile(file);
+    await saveUserDefinition(definition, version);
+    toast(`${definitionName(definition)} tanımı kaydedildi.`, 'success');
+    // A waiting keyboard may match this definition.
+    const waiting = Object.values(getState().sessions).find(
+      (s) => s.status === 'needs-definition' && s.vendorProductId === definition.vendorProductId,
+    );
+    if (waiting) await loadKeyboard(waiting.id, {definition, version, source: 'user'});
+    return definition;
+  } catch (error) {
+    toast(errorText(error), 'error', 8000);
+    return null;
+  }
+};
+
+export const reloadSession = async (id: string) => {
+  const session = getState().sessions[id];
+  const data = getState().data[id];
+  if (!session) return;
+  if (data) {
+    await loadKeyboard(id, {definition: data.definition, version: data.definitionVersion, source: data.definitionSource});
+  } else {
+    const found = await findDefinition(session.vendorProductId, (session.protocol ?? 0) >= 11 ? 'v3' : 'v2');
+    if (found) await loadKeyboard(id, found);
+  }
+};
+
+export const closeSession = async (id: string, unplugged = false) => {
+  const controller = controllers.get(id);
+  controllers.delete(id);
+  controller?.unsubscribe();
+  await controller?.channel.close().catch(() => undefined);
+  setState((s) => {
+    const sessions = {...s.sessions};
+    const data = {...s.data};
+    delete sessions[id];
+    delete data[id];
+    const selectedId = s.selectedId === id ? (Object.keys(sessions)[0] ?? null) : s.selectedId;
+    return {sessions, data, selectedId, selection: s.selectedId === id ? null : s.selection};
+  });
+  if (unplugged) toast('Klavye çıkarıldı.', 'info');
+};
+
+export const selectSession = (id: string) => {
+  if (getState().selectedId === id) return;
+  setState({selectedId: id, layer: 0, selection: null});
+  const controller = controllers.get(id);
+  if (controller?.transport.kind === 'webhid' && getState().settings.blinkOnSelect) void blink(id);
+};
+
+/** Briefly blinks the keyboard's LEDs so the user can see which board is selected. */
+export const blink = async (id: string) => {
+  const api = controllers.get(id)?.api;
+  if (!api) return;
+  for (let step = 0; step < 6; step++) {
+    await api.deviceIndication(step).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+};
+
+export const setPane = (pane: Pane) => setState({pane});
+export const setLayer = (layer: number) => setState({layer});
+export const setSelection = (selection: ReturnType<typeof getState>['selection']) => setState({selection});
+
+// ---------------------------------------------------------------------------
+// Keymap editing
+
+const requireReady = (id: string | null) => {
+  if (!id) return null;
+  const controller = controllers.get(id);
+  const data = getState().data[id];
+  return controller && data ? {controller, data} : null;
+};
+
+const applyChange = async (change: KeymapChange, value: number) => {
+  const ready = requireReady(change.sessionId);
+  if (!ready) return false;
+  const {controller} = ready;
+  const {layer, target} = change;
+  if ('row' in target) {
+    const {cols} = ready.data.matrix;
+    const index = target.row * cols + target.col;
+    updateData(change.sessionId, (d) => ({
+      keymap: d.keymap.map((keys, l) => (l === layer ? keys.map((k, i) => (i === index ? value : k)) : keys)),
+    }));
+    try {
+      await controller.api.setKeycode(layer, target.row, target.col, value);
+      return true;
+    } catch (error) {
+      toast(`Tuş yazılamadı: ${errorText(error)}`, 'error');
+      return false;
+    }
+  }
+  updateData(change.sessionId, (d) => ({
+    encoders: d.encoders.map((row, l) =>
+      l === layer ? row.map((pair, e) => (e === target.encoder ? ((target.cw ? [pair[0], value] : [value, pair[1]]) as [number, number]) : pair)) : row,
+    ),
+  }));
+  try {
+    await controller.api.setEncoder(layer, target.encoder, target.cw, value);
+    return true;
+  } catch (error) {
+    toast(`Knob ayarı yazılamadı: ${errorText(error)}`, 'error');
+    return false;
+  }
+};
+
+/** Keys of the current layout in reading order (used to advance the selection). */
+export const orderedKeys = (data: KeyboardData) =>
+  visibleKeys(data.definition, data.layoutOptions)
+    .filter((key) => key.hasMatrix || key.isEncoder)
+    .sort((a, b) => Math.round(a.y * 4) - Math.round(b.y * 4) || a.x - b.x);
+
+export const assignKeycode = async (value: number) => {
+  const {selectedId, selection, layer, settings} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selection || !selectedId) return;
+  const key = visibleKeys(ready.data.definition, ready.data.layoutOptions).find((k) => k.id === selection.keyId);
+  if (!key) return;
+
+  let change: KeymapChange;
+  if (selection.part === 'key') {
+    if (!key.hasMatrix) return;
+    const before = ready.data.keymap[layer]?.[key.row * ready.data.matrix.cols + key.col] ?? 0;
+    change = {sessionId: selectedId, layer, target: {row: key.row, col: key.col}, before, after: value};
+  } else {
+    if (key.ei === undefined || !ready.data.encoders.length) return;
+    const cw = selection.part === 'cw';
+    const before = ready.data.encoders[layer]?.[key.ei]?.[cw ? 1 : 0] ?? 0;
+    change = {sessionId: selectedId, layer, target: {encoder: key.ei, cw}, before, after: value};
+  }
+  if (change.before === change.after) return;
+  const ok = await applyChange(change, value);
+  if (!ok) return;
+  setState((s) => ({undo: [...s.undo.slice(-199), change], redo: []}));
+
+  if (settings.advanceSelection && selection.part === 'key') {
+    const order = orderedKeys(ready.data).filter((k) => k.hasMatrix);
+    const index = order.findIndex((k) => k.id === key.id);
+    const next = order[index + 1];
+    setState({selection: next ? {keyId: next.id, part: 'key'} : null});
+  }
+};
+
+export const undoChange = async () => {
+  const change = getState().undo.at(-1);
+  if (!change) return;
+  setState((s) => ({undo: s.undo.slice(0, -1), redo: [...s.redo, change], layer: change.layer}));
+  await applyChange(change, change.before);
+};
+
+export const redoChange = async () => {
+  const change = getState().redo.at(-1);
+  if (!change) return;
+  setState((s) => ({redo: s.redo.slice(0, -1), undo: [...s.undo, change], layer: change.layer}));
+  await applyChange(change, change.after);
+};
+
+/** Copies one layer onto another in a single buffer write. */
+export const copyLayer = async (from: number, to: number) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selectedId || from === to) return;
+  const {data, controller} = ready;
+  const keymap = data.keymap.map((keys, l) => (l === to ? [...data.keymap[from]] : keys));
+  await saveBackup(selectedId, `Katman ${to} kopyalamadan önce`, true);
+  updateData(selectedId, {keymap});
+  try {
+    await controller.api.writeKeymap(keymap, data.matrix, getState().sessions[selectedId]?.protocol ?? 0);
+    toast(`Katman ${from}, katman ${to} üzerine kopyalandı.`, 'success');
+  } catch (error) {
+    toast(`Kopyalanamadı: ${errorText(error)}`, 'error');
+  }
+};
+
+/** Fills a layer with KC_TRNS so it falls through to lower layers. */
+export const clearLayer = async (layer: number) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selectedId) return;
+  const trns = ready.controller.codec.value('KC_TRNS') ?? 1;
+  const keymap = ready.data.keymap.map((keys, l) => (l === layer ? keys.map(() => trns) : keys));
+  await saveBackup(selectedId, `Katman ${layer} temizlenmeden önce`, true);
+  updateData(selectedId, {keymap});
+  try {
+    await ready.controller.api.writeKeymap(keymap, ready.data.matrix, getState().sessions[selectedId]?.protocol ?? 0);
+    toast(`Katman ${layer} geçirgen yapıldı.`, 'success');
+  } catch (error) {
+    toast(`Katman temizlenemedi: ${errorText(error)}`, 'error');
+  }
+};
+
+/** Restores the keymap compiled into the firmware. */
+export const resetKeymapToDefault = async () => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selectedId) return;
+  await saveBackup(selectedId, 'Fabrika keymap’ine dönmeden önce', true);
+  try {
+    await ready.controller.api.resetKeymap();
+    const keymap = await ready.controller.api.readKeymap(ready.data.layerCount, ready.data.matrix, getState().sessions[selectedId]?.protocol ?? 0);
+    updateData(selectedId, {keymap});
+    setState({undo: [], redo: []});
+    toast('Tuş haritası firmware varsayılanına döndü. Önceki hâli yedeklendi.', 'success');
+  } catch (error) {
+    toast(`Sıfırlanamadı: ${errorText(error)}`, 'error');
+  }
+};
+
+export const setLayoutOption = async (group: number, choice: number) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selectedId) return;
+  const selections = [...ready.data.layoutOptions];
+  selections[group] = choice;
+  updateData(selectedId, {layoutOptions: selections});
+  setState({selection: null});
+  try {
+    await ready.controller.api.setLayoutOptions(packLayoutOptions(selections, layoutChoiceCounts(ready.data.definition)));
+  } catch (error) {
+    toast(`Layout seçeneği yazılamadı: ${errorText(error)}`, 'error');
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Custom menus (lighting etc.)
+
+const pendingSaves = new Map<string, ReturnType<typeof setTimeout>>();
+
+const scheduleSave = (id: string, channel: number) => {
+  const key = `${id}:${channel}`;
+  clearTimeout(pendingSaves.get(key));
+  pendingSaves.set(
+    key,
+    setTimeout(() => {
+      pendingSaves.delete(key);
+      void controllers.get(id)?.api.saveCustomValues(channel).catch(() => undefined);
+    }, 600),
+  );
+};
+
+// While a slider is dragged only the newest value per command is sent, so the
+// HID queue never falls behind the pointer.
+const menuWrites = new Map<string, {latest: number[] | null; running: boolean}>();
+
+export const setMenuValue = async (command: MenuCommand, value: number[]) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  if (!ready || !selectedId) return;
+  const [name, channel, ...rest] = command;
+  updateData(selectedId, (d) => ({menuValues: {...d.menuValues, [name]: value}}));
+  const key = `${selectedId}:${name}`;
+  const slot = menuWrites.get(key) ?? {latest: null, running: false};
+  menuWrites.set(key, slot);
+  slot.latest = value;
+  if (slot.running) return;
+  slot.running = true;
+  try {
+    while (slot.latest) {
+      const next = slot.latest;
+      slot.latest = null;
+      await ready.controller.api.setCustomValue([channel, ...rest], next);
+    }
+    scheduleSave(selectedId, channel);
+  } catch (error) {
+    toast(`Ayar yazılamadı: ${errorText(error)}`, 'error');
+  } finally {
+    slot.running = false;
+  }
+};
+
+export const syncMenuValues = async (id: string) => {
+  const ready = requireReady(id);
+  if (!ready) return;
+  const values: Record<string, number[]> = {};
+  for (const [name, [, ...bytes]] of menuCommands(ready.data.menus)) {
+    try {
+      values[name] = await ready.controller.api.getCustomValue(bytes);
+    } catch {
+      // Ignore values the firmware does not report.
+    }
+  }
+  updateData(id, (d) => ({menuValues: {...d.menuValues, ...values}}));
+};
+
+// ---------------------------------------------------------------------------
+// Macros
+
+export const writeMacros = async (macros: Macro[]) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  const protocol = selectedId ? getState().sessions[selectedId]?.protocol ?? 0 : 0;
+  if (!ready || !selectedId) return false;
+  const padded = [...macros.slice(0, ready.data.macroCount)];
+  while (padded.length < ready.data.macroCount) padded.push([]);
+  let bytes: number[];
+  try {
+    bytes = encodeMacros(padded, protocol);
+  } catch (error) {
+    toast(errorText(error), 'error');
+    return false;
+  }
+  if (bytes.length > ready.data.macroBufferSize) {
+    toast(`Makrolar hafızaya sığmıyor: ${bytes.length}/${ready.data.macroBufferSize} bayt.`, 'error');
+    return false;
+  }
+  try {
+    await ready.controller.api.writeMacroBuffer(bytes, ready.data.macroBufferSize);
+    const full = [...bytes, ...new Array(ready.data.macroBufferSize - bytes.length).fill(0)];
+    updateData(selectedId, {macroBytes: full, macros: padded});
+    return true;
+  } catch (error) {
+    toast(`Makrolar yazılamadı: ${errorText(error)}`, 'error');
+    return false;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Matrix tester
+
+export const readMatrix = async (id: string) => {
+  const ready = requireReady(id);
+  if (!ready) return null;
+  return ready.controller.api.getMatrixState(ready.data.matrix, getState().sessions[id]?.protocol ?? 0);
+};
+
+// ---------------------------------------------------------------------------
+// Backups
+
+export const snapshot = (id: string): BackupFile | null => {
+  const ready = requireReady(id);
+  const session = getState().sessions[id];
+  if (!ready || !session) return null;
+  const {data, controller} = ready;
+  const counts = layoutChoiceCounts(data.definition);
+  return createBackup(
+    {
+      name: data.name,
+      vendorId: session.vendorId,
+      productId: session.productId,
+      vendorProductId: session.vendorProductId,
+      protocol: session.protocol ?? 0,
+      matrix: data.matrix,
+      keymap: data.keymap,
+      encoders: data.encoders,
+      layoutOptions: counts.length ? packLayoutOptions(data.layoutOptions, counts) : undefined,
+      macroCount: data.macroCount,
+      macroBufferSize: data.macroBufferSize,
+      macroBytes: data.macroBytes,
+      menuValues: data.menuValues,
+      menuCommands: Object.fromEntries([...menuCommands(data.menus)].map(([name, [, ...bytes]]) => [name, bytes])),
+    },
+    controller.codec,
+  );
+};
+
+const AUTO_BACKUP_INTERVAL = 12 * 60 * 60 * 1000;
+const MAX_AUTO_BACKUPS = 20;
+
+export const saveBackup = async (id: string, label: string, automatic = false) => {
+  const file = snapshot(id);
+  const session = getState().sessions[id];
+  if (!file || !session) return null;
+  try {
+    const backupId = await db.backups.add({
+      vendorProductId: session.vendorProductId,
+      deviceName: file.keyboard.name,
+      label,
+      createdAt: Date.now(),
+      automatic,
+      data: file,
+    });
+    if (automatic) {
+      const autos = await db.backups.where('vendorProductId').equals(session.vendorProductId).filter((b) => b.automatic).sortBy('createdAt');
+      const excess = autos.slice(0, Math.max(0, autos.length - MAX_AUTO_BACKUPS));
+      await db.backups.bulkDelete(excess.map((b) => b.id!));
+    }
+    return backupId;
+  } catch {
+    return null;
+  }
+};
+
+const autoBackup = async (id: string) => {
+  const session = getState().sessions[id];
+  if (!session || session.kind === 'virtual') return;
+  try {
+    const latest = await db.backups.where('vendorProductId').equals(session.vendorProductId).reverse().sortBy('createdAt');
+    const lastAuto = latest.find((b) => b.automatic);
+    if (!lastAuto || Date.now() - lastAuto.createdAt > AUTO_BACKUP_INTERVAL) await saveBackup(id, 'Otomatik yedek (bağlanınca)', true);
+  } catch {
+    // Storage unavailable.
+  }
+};
+
+export const restoreBackup = async (file: BackupFile | ViaSaveFile) => {
+  const {selectedId} = getState();
+  const ready = requireReady(selectedId);
+  const session = selectedId ? getState().sessions[selectedId] : undefined;
+  if (!ready || !selectedId || !session) return false;
+  const fileVpid = 'format' in file ? file.keyboard.vendorProductId : file.vendorProductId;
+  if (fileVpid !== session.vendorProductId) {
+    toast('Bu yedek başka bir klavyeye ait; geri yüklenmedi.', 'error');
+    return false;
+  }
+  const {data, controller} = ready;
+  const protocol = session.protocol ?? 0;
+  const plan = planRestore(file, controller.codec, {
+    layerCount: data.layerCount,
+    rows: data.matrix.rows,
+    cols: data.matrix.cols,
+    protocol,
+    macroCount: data.macroCount,
+  });
+  await saveBackup(selectedId, 'Geri yüklemeden önce', true);
+  try {
+    const keymap = data.keymap.map((keys, l) => plan.keymap[l] ?? keys);
+    await controller.api.writeKeymap(keymap, data.matrix, protocol);
+    updateData(selectedId, {keymap});
+    if (plan.encoders && data.encoderCount) {
+      for (const [layer, row] of plan.encoders.entries()) {
+        for (const [encoder, [ccw, cw]] of row.slice(0, data.encoderCount).entries()) {
+          await controller.api.setEncoder(layer, encoder, false, ccw);
+          await controller.api.setEncoder(layer, encoder, true, cw);
+        }
+      }
+      updateData(selectedId, (d) => ({
+        encoders: d.encoders.map((row, l) => row.map((pair, e) => plan.encoders?.[l]?.[e] ?? pair)),
+      }));
+    }
+    if (plan.layoutOptions !== undefined) {
+      await controller.api.setLayoutOptions(plan.layoutOptions);
+      updateData(selectedId, {layoutOptions: unpackLayoutOptions(plan.layoutOptions, layoutChoiceCounts(data.definition))});
+    }
+    if (plan.macros) await writeMacros(plan.macros);
+    if (plan.menuValues) {
+      const channels = new Set<number>();
+      for (const [name, {command, value}] of Object.entries(plan.menuValues)) {
+        if (!(name in data.menuValues)) continue;
+        await controller.api.setCustomValue(command, value).catch(() => undefined);
+        channels.add(command[0]);
+      }
+      for (const channel of channels) await controller.api.saveCustomValues(channel).catch(() => undefined);
+      await syncMenuValues(selectedId);
+    }
+    setState({undo: [], redo: []});
+    plan.warnings.slice(0, 3).forEach((w) => toast(w, 'info', 8000));
+    toast('Yedek geri yüklendi.', 'success');
+    return true;
+  } catch (error) {
+    toast(`Geri yükleme yarıda kaldı: ${errorText(error)}`, 'error', 8000);
+    return false;
+  }
+};
+
+/** For a v2/v3 version string of the session. */
+export const wantedDefinitionVersion = (session: SessionInfo): DefinitionVersion =>
+  (session.protocol ?? 0) >= Protocol.V3Definitions ? 'v3' : 'v2';
+
+export const useDefinitionForSession = async (id: string, definition: AnyDefinition, version: DefinitionVersion) =>
+  loadKeyboard(id, {definition, version, source: 'user'});
