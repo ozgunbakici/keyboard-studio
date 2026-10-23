@@ -46,7 +46,7 @@ export type KeyboardData = {
   matrixTesterSupported: boolean;
 };
 
-export type Pane = 'keymap' | 'library' | 'lighting' | 'macros' | 'tester' | 'backups' | 'definitions' | 'settings';
+export type Pane = 'keymap' | 'library' | 'lighting' | 'macros' | 'tester' | 'typing' | 'backups' | 'definitions' | 'settings';
 
 export type KeySelection = {keyId: string; part: 'key' | 'ccw' | 'cw'} | null;
 

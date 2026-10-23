@@ -179,7 +179,7 @@ const openTransport = async (transport: HidTransport, options: {select?: boolean
   if (options.select || !getState().selectedId) {
     selectSession(id);
     // A keyboard the user just picked should be shown, not hidden behind settings.
-    if (options.select && ['settings', 'definitions', 'backups', 'library'].includes(getState().pane)) setState({pane: 'keymap'});
+    if (options.select && ['settings', 'definitions', 'backups', 'library', 'typing'].includes(getState().pane)) setState({pane: 'keymap'});
   }
 
   const channel = new ViaChannel(transport);

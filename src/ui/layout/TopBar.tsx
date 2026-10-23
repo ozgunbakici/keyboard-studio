@@ -9,6 +9,7 @@ const paneTitles = {
   macros: 'Makrolar',
   lighting: 'Işık ve ayarlar',
   tester: 'Tuş testi',
+  typing: 'Yazı antrenmanı',
   backups: 'Yedekler',
   definitions: 'Klavye tanımları',
   settings: 'Ayarlar',

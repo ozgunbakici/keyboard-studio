@@ -1,4 +1,4 @@
-import {Archive, BookMarked, FileJson, FlaskConical, Keyboard, Lightbulb, Plus, Settings, Sparkles, Usb, Zap} from 'lucide-react';
+import {Archive, BookMarked, FileJson, FlaskConical, GraduationCap, Keyboard, Lightbulb, Plus, Settings, Sparkles, Usb, Zap} from 'lucide-react';
 import {useMemo, type ReactNode} from 'react';
 import {hostLayouts} from '@/keycodes/host-layouts';
 import {connectDemo, connectWebHid, selectSession, setPane} from '@/state/actions';
@@ -29,6 +29,7 @@ const navItems: {pane: Pane; label: string; icon: ReactNode; needsKeyboard: bool
   {pane: 'macros', label: 'Makrolar', icon: <Zap size={17} />, needsKeyboard: true},
   {pane: 'lighting', label: 'Işık ve ayarlar', icon: <Lightbulb size={17} />, needsKeyboard: true},
   {pane: 'tester', label: 'Tuş testi', icon: <FlaskConical size={17} />, needsKeyboard: true},
+  {pane: 'typing', label: 'Yazı antrenmanı', icon: <GraduationCap size={17} />, needsKeyboard: false},
   {pane: 'backups', label: 'Yedekler', icon: <Archive size={17} />, needsKeyboard: false},
   {pane: 'definitions', label: 'Klavye tanımları', icon: <FileJson size={17} />, needsKeyboard: false},
   {pane: 'settings', label: 'Ayarlar', icon: <Settings size={17} />, needsKeyboard: false},

@@ -2,6 +2,7 @@ import Dexie, {type Table} from 'dexie';
 import type {AnyDefinition, DefinitionVersion} from '@/definitions/parse';
 import type {BackupFile} from '@/state/backup';
 import type {KeyBinding, LibraryAction, SlotUse} from '@/library/types';
+import type {TypingRecord} from '@/typing/store';
 
 export type StoredDefinition = {
   vendorProductId: number;
@@ -30,6 +31,7 @@ class StudioDatabase extends Dexie {
   actions!: Table<LibraryAction, string>;
   bindings!: Table<KeyBinding, number>;
   slots!: Table<SlotUse, [number, number]>;
+  typing!: Table<TypingRecord, number>;
 
   constructor() {
     super('klavye-studio');
@@ -42,6 +44,9 @@ class StudioDatabase extends Dexie {
       actions: 'id, updatedAt',
       bindings: '++id, vendorProductId, actionId',
       slots: '[vendorProductId+slot], vendorProductId, actionId',
+    });
+    this.version(3).stores({
+      typing: '++id, at, kind, source',
     });
   }
 }

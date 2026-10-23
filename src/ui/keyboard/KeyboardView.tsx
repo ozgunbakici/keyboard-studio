@@ -15,6 +15,8 @@ type Props = {
   pressed?: Set<string>;
   tested?: Set<string>;
   heat?: Map<string, number>;
+  /** Base fill per "row,col", e.g. finger colours in the typing guide. */
+  tints?: Map<string, string>;
   className?: string;
   ariaLabel?: string;
 };
@@ -83,6 +85,7 @@ const KeyCap = memo(function KeyCap({
   pressed,
   tested,
   heat,
+  tint,
   onSelect,
 }: {
   keyDef: RenderKey;
@@ -92,14 +95,15 @@ const KeyCap = memo(function KeyCap({
   pressed: boolean;
   tested: boolean;
   heat?: number;
+  tint?: string;
   onSelect?: Props['onSelect'];
 }) {
   const k = keyDef;
   const transform = k.r ? `rotate(${k.r} ${k.rx} ${k.ry})` : undefined;
   const isSelected = selected?.keyId === k.id;
   const tone = label ? toneColor[label.tone] : undefined;
-  const base = pressed ? 'var(--accent)' : tested ? 'var(--layer-soft)' : keyColor(k);
-  const heatFill = heat !== undefined ? `rgb(248 113 113 / ${Math.min(0.85, heat * 0.85)})` : undefined;
+  const base = pressed ? 'var(--accent)' : tested ? 'var(--layer-soft)' : (tint ?? keyColor(k));
+  const heatFill = heat !== undefined ? `rgb(208 59 59 / ${Math.min(0.9, heat * 0.9).toFixed(3)})` : undefined;
 
   if (k.isEncoder) {
     const cx = k.x + k.w / 2;
@@ -195,16 +199,17 @@ const KeyCap = memo(function KeyCap({
       {shape(outer, {fill: 'var(--key-edge)'})}
       {shape(inner, {
         className: 'key-shape',
-        fill: heatFill ?? base,
+        fill: base,
         stroke: isSelected ? 'var(--accent)' : tone ? tone : 'var(--key-top)',
         strokeWidth: isSelected ? 0.06 : tone ? 0.035 : 0.02,
       })}
+      {heatFill && !pressed && shape(inner, {fill: heatFill, pointerEvents: 'none'})}
       {label && <Legend label={label} {...legendBox} dim={!k.hasMatrix} />}
     </g>
   );
 });
 
-export const KeyboardView = ({keys, labelFor, encoderLabelsFor, selection = null, onSelect, pressed, tested, heat, className, ariaLabel}: Props) => {
+export const KeyboardView = ({keys, labelFor, encoderLabelsFor, selection = null, onSelect, pressed, tested, heat, tints, className, ariaLabel}: Props) => {
   const bounds = useMemo(() => layoutBounds(keys), [keys]);
   const viewBox = `${bounds.minX - PAD} ${bounds.minY - PAD} ${bounds.width + PAD * 2} ${bounds.height + PAD * 2}`;
   return (
@@ -235,6 +240,7 @@ export const KeyboardView = ({keys, labelFor, encoderLabelsFor, selection = null
           pressed={pressed?.has(`${key.row},${key.col}`) ?? false}
           tested={tested?.has(`${key.row},${key.col}`) ?? false}
           heat={heat?.get(`${key.row},${key.col}`)}
+          tint={tints?.get(`${key.row},${key.col}`)}
           onSelect={onSelect}
         />
       ))}

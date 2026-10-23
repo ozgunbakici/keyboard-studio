@@ -26,6 +26,9 @@
   --mod-soft: rgb(195 155 255 / 0.14);
   --action: #f78fb3;
   --action-soft: rgb(247 143 179 / 0.15);
+  /* Chart marks, validated for colour-vision deficiency on this surface. */
+  --chart-1: #3987e5;
+  --chart-critical: #d03b3b;
   --success: #4ade80;
   --danger: #f87171;
   --danger-soft: rgb(248 113 113 / 0.14);
@@ -61,6 +64,8 @@
   --mod-soft: rgb(123 79 214 / 0.1);
   --action: #c2185b;
   --action-soft: rgb(194 24 91 / 0.1);
+  --chart-1: #2a78d6;
+  --chart-critical: #d03b3b;
   --success: #15803d;
   --danger: #dc2626;
   --danger-soft: rgb(220 38 38 / 0.1);
@@ -96,6 +101,8 @@
   --color-mod-soft: var(--mod-soft);
   --color-action: var(--action);
   --color-action-soft: var(--action-soft);
+  --color-chart-1: var(--chart-1);
+  --color-chart-critical: var(--chart-critical);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
@@ -168,5 +175,31 @@ input[type='range'] {
   }
   100% {
     opacity: 0;
+  }
+}
+
+/* Typing trainer caret: a thin bar before the next character. */
+.typing-caret {
+  position: relative;
+}
+.typing-caret::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: typing-caret-blink 1.1s steps(1) infinite;
+}
+@keyframes typing-caret-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-caret::before {
+    animation: none;
   }
 }

@@ -13,6 +13,7 @@ import {LightingPane} from '@/ui/panes/LightingPane';
 import {MacrosPane} from '@/ui/panes/MacrosPane';
 import {SettingsPane} from '@/ui/panes/SettingsPane';
 import {TesterPane} from '@/ui/panes/TesterPane';
+import {TypingPane} from '@/ui/panes/TypingPane';
 
 const keyboardPanes = {
   keymap: KeymapPane,
@@ -39,6 +40,7 @@ const Content = () => {
   const pane = useStudio((s) => s.pane);
   const session = useSelectedSession();
   if (pane === 'library') return <LibraryPane />;
+  if (pane === 'typing') return <TypingPane />;
   if (pane === 'backups') return <BackupsPane />;
   if (pane === 'definitions') return <DefinitionsPane />;
   if (pane === 'settings') return <SettingsPane />;
