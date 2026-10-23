@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Playwright 1.56 has browser builds up to Ubuntu 24.04; ubuntu-latest moved to 26.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,10 +35,10 @@ jobs:
         run: npm run definitions
       - name: Derle
         run: npm run build:app
+      - name: Test tarayıcısı
+        run: npx playwright install --with-deps chromium
       - name: Uçtan uca testler
-        run: |
-          npx playwright install --with-deps chromium
-          npm run e2e
+        run: npm run e2e
         env:
           CI: 'true'
       - uses: actions/upload-pages-artifact@v3
@@ -48,7 +49,7 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

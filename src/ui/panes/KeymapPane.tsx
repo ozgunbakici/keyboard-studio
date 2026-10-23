@@ -1,8 +1,11 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {Copy, Eraser, Layers, Redo2, RotateCcw, SlidersHorizontal, Undo2} from 'lucide-react';
+import {BookMarked, Copy, Eraser, Layers, Redo2, RotateCcw, SlidersHorizontal, Undo2} from 'lucide-react';
 import {layoutOptionGroups, visibleKeys, type RenderKey} from '@/definitions/geometry';
 import {keyLabel} from '@/keycodes/labels';
+import {focusAction} from '@/library/store';
+import {bindingKey} from '@/library/types';
 import {
+  assignAction,
   assignKeycode,
   clearLayer,
   copyLayer,
@@ -10,13 +13,14 @@ import {
   resetKeymapToDefault,
   setLayer,
   setLayoutOption,
+  setPane,
   setSelection,
   undoChange,
 } from '@/state/actions';
 import {useSelectedData, useStudio} from '@/state/store';
 import {confirm} from '@/ui/components/Dialog';
-import {Button, IconButton, Select, Toggle, cx} from '@/ui/components/ui';
-import {useLabelContext} from '@/ui/hooks';
+import {Badge, Button, IconButton, Select, Toggle, cx} from '@/ui/components/ui';
+import {actionKeyLabel, useBoundActions, useLabelContext} from '@/ui/hooks';
 import {KeyboardView} from '@/ui/keyboard/KeyboardView';
 import {KeycodePicker} from '@/ui/picker/KeycodePicker';
 
@@ -85,25 +89,50 @@ export const KeymapPane = () => {
   const canUndo = useStudio((s) => s.undo.length > 0);
   const canRedo = useStudio((s) => s.redo.length > 0);
   const ctx = useLabelContext();
+  const {vpid, bound} = useBoundActions();
   const [copyTarget, setCopyTarget] = useState(1);
 
   const keys = useMemo(() => (data ? visibleKeys(data.definition, data.layoutOptions) : []), [data]);
   const cols = data?.matrix.cols ?? 1;
   const layerKeys = data?.keymap[layer];
 
+  const actionAt = useCallback(
+    (key: RenderKey, part: 'key' | 'ccw' | 'cw') => {
+      if (vpid === undefined) return undefined;
+      const position =
+        part === 'key'
+          ? {vendorProductId: vpid, layer, row: key.row, col: key.col}
+          : {vendorProductId: vpid, layer, row: -1, col: -1, encoder: {index: key.ei ?? 0, cw: part === 'cw'}};
+      return bound.get(bindingKey(position));
+    },
+    [vpid, bound, layer],
+  );
+
   const labelFor = useCallback(
-    (key: RenderKey) => (key.hasMatrix && layerKeys ? keyLabel(layerKeys[key.row * cols + key.col] ?? 0, ctx) : undefined),
-    [layerKeys, cols, ctx],
+    (key: RenderKey) => {
+      if (!key.hasMatrix || !layerKeys) return undefined;
+      const label = keyLabel(layerKeys[key.row * cols + key.col] ?? 0, ctx);
+      const action = actionAt(key, 'key');
+      return action ? actionKeyLabel(action, label) : label;
+    },
+    [layerKeys, cols, ctx, actionAt],
   );
   const encoderLabelsFor = useCallback(
     (key: RenderKey) => {
       const pair = key.ei !== undefined ? data?.encoders[layer]?.[key.ei] : undefined;
-      return pair ? {ccw: keyLabel(pair[0], ctx), cw: keyLabel(pair[1], ctx)} : undefined;
+      if (!pair) return undefined;
+      const side = (part: 'ccw' | 'cw', value: number) => {
+        const label = keyLabel(value, ctx);
+        const action = actionAt(key, part);
+        return action ? actionKeyLabel(action, label) : label;
+      };
+      return {ccw: side('ccw', pair[0]), cw: side('cw', pair[1])};
     },
-    [data?.encoders, layer, ctx],
+    [data?.encoders, layer, ctx, actionAt],
   );
 
   const selectedKey = keys.find((k) => k.id === selection?.keyId);
+  const selectedAction = selectedKey && selection ? actionAt(selectedKey, selection.part) : undefined;
   const currentValue = useMemo(() => {
     if (!selectedKey || !data || !selection) return undefined;
     if (selection.part === 'key') return layerKeys?.[selectedKey.row * cols + selectedKey.col];
@@ -221,7 +250,7 @@ export const KeymapPane = () => {
                       selection?.keyId === k.id && selection.part === part ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:text-fg',
                     )}
                   >
-                    {icon} {text || '—'}
+                    {icon} {text?.replace(/\n/g, ' ') || '—'}
                   </button>
                 );
                 return (
@@ -240,9 +269,30 @@ export const KeymapPane = () => {
               <span className="text-faint">
                 {selection?.part === 'key' ? `Tuş ${selectedKey.row},${selectedKey.col}` : selection?.part === 'cw' ? 'Knob sağa' : 'Knob sola'} · Katman {layer}
               </span>
-              <span className="font-semibold">{current.title}</span>
+              {selectedAction ? (
+                <>
+                  <Badge tone="action">
+                    <BookMarked size={12} /> Eylem
+                  </Badge>
+                  <span className="font-semibold">{selectedAction.name}</span>
+                </>
+              ) : (
+                <span className="font-semibold">{current.title}</span>
+              )}
               <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{current.code}</code>
               <div className="ml-auto flex gap-1.5">
+                {selectedAction && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      focusAction(selectedAction.id);
+                      setPane('library');
+                    }}
+                  >
+                    Eylemi düzenle
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => void assignKeycode(ctx.codec.value('KC_TRNS') ?? 1)}>
                   Geçirgen yap
                 </Button>
@@ -261,7 +311,13 @@ export const KeymapPane = () => {
       </div>
 
       <div className="min-h-[220px] flex-1 overflow-hidden rounded-xl border border-border bg-surface">
-        <KeycodePicker onPick={(value) => void assignKeycode(value)} currentValue={currentValue} disabled={!selection} />
+        <KeycodePicker
+          onPick={(value) => void assignKeycode(value)}
+          onPickAction={(id) => void assignAction(id)}
+          currentValue={selectedAction ? undefined : currentValue}
+          currentActionId={selectedAction?.id}
+          disabled={!selection}
+        />
       </div>
     </div>
   );

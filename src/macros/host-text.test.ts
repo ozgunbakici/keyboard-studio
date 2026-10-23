@@ -6,6 +6,8 @@ import {compileMacro, compileText, decompileMacro, simulateMacro, textNeedsConve
 const trq = hostLayouts['tr-q'];
 const trf = hostLayouts['tr-f'];
 const us = hostLayouts.us;
+const mac = hostLayouts['us-mac'];
+const macIso = hostLayouts['us-mac-iso'];
 
 describe('macro text on the host layout', () => {
   it('shows why plain VIA macros break on Turkish Q', () => {
@@ -22,9 +24,10 @@ describe('macro text on the host layout', () => {
     'if (a[0] == {x: 1}) { return "ok"; } // \\ | ~ ` ^',
     'Fiyat: 100₺ veya 5€ #etiket $değişken 50%',
     'satır 1\nsatır 2\tsekme',
+    'kâğıt, hâlâ, Üsküdar’da çay — café',
   ];
 
-  for (const host of [trq, trf, us]) {
+  for (const host of [trq, trf, us, mac, macIso]) {
     it(`types every sample exactly on ${host.short}`, () => {
       for (const text of samples) {
         const {macro, unsupported} = compileText(text, host);
@@ -50,7 +53,7 @@ describe('macro text on the host layout', () => {
   });
 
   it('recovers the intended text from what is stored on the keyboard', () => {
-    for (const host of [trq, trf]) {
+    for (const host of [trq, trf, mac, macIso]) {
       for (const text of samples) {
         const {macro, unsupported} = compileText(text, host);
         // Round-trip through the real byte format as well.
@@ -86,5 +89,37 @@ describe('macro text on the host layout', () => {
       {type: 'delay', ms: 100},
       {type: 'tap', keycode: 0x28},
     ]);
+  });
+});
+
+describe('macOS US layouts', () => {
+  it('fixes the ISO § / ` swap', () => {
+    expect(simulateMacro([{type: 'text', text: '`ls`'}], macIso)).toBe('§ls§');
+    const {macro} = compileText('`ls`', macIso);
+    expect(simulateMacro(macro, macIso)).toBe('`ls`');
+    expect(macro[0]).toEqual({type: 'tap', keycode: 0x64});
+  });
+
+  it('types Turkish letters a Mac can reach with Option', () => {
+    const {macro, unsupported} = compileText('çÇıüÜöÖ', mac);
+    expect(unsupported).toEqual([]);
+    expect(simulateMacro(macro, mac)).toBe('çÇıüÜöÖ');
+    // ü is the umlaut dead key (Option+U) followed by u.
+    expect(compileText('ü', mac).macro).toEqual([
+      {type: 'down', keycode: 0xe6},
+      {type: 'tap', keycode: 0x18},
+      {type: 'up', keycode: 0xe6},
+      {type: 'text', text: 'u'},
+    ]);
+  });
+
+  it('reports what the plain US layouts cannot type', () => {
+    expect(compileText('şğİ', mac).unsupported).toEqual(['ş', 'ğ', 'İ']);
+    expect(compileText('çüş', us).unsupported).toEqual(['ç', 'ü', 'ş']);
+  });
+
+  it('composes Turkish circumflex letters on Turkish Q', () => {
+    const {macro} = compileText('kâğıt', trq);
+    expect(simulateMacro(macro, trq)).toBe('kâğıt');
   });
 });

@@ -46,7 +46,7 @@ export type KeyboardData = {
   matrixTesterSupported: boolean;
 };
 
-export type Pane = 'keymap' | 'lighting' | 'macros' | 'tester' | 'backups' | 'definitions' | 'settings';
+export type Pane = 'keymap' | 'library' | 'lighting' | 'macros' | 'tester' | 'backups' | 'definitions' | 'settings';
 
 export type KeySelection = {keyId: string; part: 'key' | 'ccw' | 'cw'} | null;
 
@@ -60,6 +60,8 @@ export type Settings = {
   theme: 'dark' | 'light' | 'system';
   advanceSelection: boolean;
   blinkOnSelect: boolean;
+  /** Rewrites library-bound keys for this computer's OS when a keyboard connects. */
+  autoSync: boolean;
 };
 
 export type KeymapChange = {sessionId: string; layer: number; target: {row: number; col: number} | {encoder: number; cw: boolean}; before: number; after: number};
@@ -79,13 +81,14 @@ export type StudioState = {
 };
 
 export const defaultSettings: Settings = {
-  hostLayout: 'tr-q',
+  hostLayout: 'us',
   hostLayoutAuto: true,
   os: 'other',
   osAuto: true,
   theme: 'dark',
   advanceSelection: true,
   blinkOnSelect: true,
+  autoSync: true,
 };
 
 export const useStudio = create<StudioState>(() => ({

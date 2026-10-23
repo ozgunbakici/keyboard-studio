@@ -8,6 +8,7 @@ import {BackupsPane} from '@/ui/panes/BackupsPane';
 import {SessionStateScreen, WelcomeScreen} from '@/ui/panes/ConnectScreen';
 import {DefinitionsPane} from '@/ui/panes/DefinitionsPane';
 import {KeymapPane} from '@/ui/panes/KeymapPane';
+import {LibraryPane} from '@/ui/panes/LibraryPane';
 import {LightingPane} from '@/ui/panes/LightingPane';
 import {MacrosPane} from '@/ui/panes/MacrosPane';
 import {SettingsPane} from '@/ui/panes/SettingsPane';
@@ -37,6 +38,7 @@ const useTheme = () => {
 const Content = () => {
   const pane = useStudio((s) => s.pane);
   const session = useSelectedSession();
+  if (pane === 'library') return <LibraryPane />;
   if (pane === 'backups') return <BackupsPane />;
   if (pane === 'definitions') return <DefinitionsPane />;
   if (pane === 'settings') return <SettingsPane />;

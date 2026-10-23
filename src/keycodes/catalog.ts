@@ -1,4 +1,4 @@
-import type {HostLayout} from './host-layouts';
+import {isDeadStroke, type HostLayout} from './host-layouts';
 /**
  * Keycode menus shown in the picker, with Turkish labels and explanations.
  * `code` is the canonical text form understood by KeycodeCodec.
@@ -479,7 +479,7 @@ export const buildSymbolGroup = (host: HostLayout): CatalogGroup => {
       if (i === 0 && char.toLocaleLowerCase('tr-TR') !== char) return;
       seen.add(char);
       const keyName = host.keys[key][0] || key.replace(/^KC_/, '');
-      const dead = host.dead.has(char) ? ' (ölü tuş: ardından boşluk gerekir)' : '';
+      const dead = isDeadStroke(host, key, i + 1) ? ' (ölü tuş: ardından boşluk gerekir)' : '';
       sections[i].keys.push(k(`${wrappers[i]}(${key})`, char, `${modText[i]}+${keyName.toLocaleUpperCase('tr-TR')} → ${char}${dead}`));
     });
   }

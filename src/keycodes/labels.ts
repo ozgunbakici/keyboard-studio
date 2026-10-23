@@ -2,7 +2,7 @@ import {catalogIndex, type CustomKeycodeInfo} from './catalog';
 import {KeycodeCodec, modNames} from './codec';
 import {hostCharFor, hostLegend, type HostLayout} from './host-layouts';
 
-export type KeyTone = 'normal' | 'mod' | 'layer' | 'macro' | 'special' | 'empty' | 'transparent' | 'custom';
+export type KeyTone = 'normal' | 'mod' | 'layer' | 'macro' | 'special' | 'empty' | 'transparent' | 'custom' | 'action';
 
 export type KeyLabel = {
   /** Big centered text. */

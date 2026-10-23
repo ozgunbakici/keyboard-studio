@@ -6,7 +6,24 @@ import {findDefinition, readDefinitionFile, saveUserDefinition, type FoundDefini
 import {createDemoKeyboard, demoDefinitionSource} from '@/emulator/demo';
 import {VirtualTransport} from '@/emulator/virtual-keyboard';
 import {KeycodeCodec} from '@/keycodes/codec';
-import {detectHostLayout} from '@/keycodes/host-layouts';
+import {detectHostLayout, hostLayouts} from '@/keycodes/host-layouts';
+import {keyLabel} from '@/keycodes/labels';
+import {resolveDelivery, type DeliveryContext} from '@/library/delivery';
+import {
+  clearBinding,
+  deleteAction,
+  dropClearedBindings,
+  ensureTrigger,
+  importLibrary,
+  loadLibrary,
+  removeBindingAt,
+  saveAction,
+  setBinding,
+  setSlots,
+  useLibrary,
+} from '@/library/store';
+import {isEmptyPlan, planSync} from '@/library/sync';
+import {osLabel, type KeyBinding, type LibraryAction, type OsId} from '@/library/types';
 import {db, getSetting, setSetting} from '@/storage/db';
 import {ViaApi} from '@/via/api';
 import {Command, Protocol, VIA_USAGE, VIA_USAGE_PAGE} from '@/via/constants';
@@ -45,10 +62,21 @@ const detectOs = (): 'mac' | 'other' => {
   return /mac/i.test(platform) ? 'mac' : 'other';
 };
 
+/** US on a Mac means the Mac US layout (Option characters), and the other way round. */
+const usVariantFor = (os: Settings['os'], layout: Settings['hostLayout']): Settings['hostLayout'] => {
+  if (os === 'mac' && layout === 'us') return 'us-mac-iso';
+  if (os !== 'mac' && (layout === 'us-mac' || layout === 'us-mac-iso')) return 'us';
+  return layout;
+};
+
 export const updateSettings = async (patch: Partial<Settings>) => {
-  const settings = {...getState().settings, ...patch};
+  const before = getState().settings;
+  const settings = {...before, ...patch};
+  if (patch.os !== undefined && patch.hostLayout === undefined) settings.hostLayout = usVariantFor(settings.os, settings.hostLayout);
   setState({settings});
   await setSetting('settings', settings);
+  // Library keys follow the computer: a corrected OS or layout rewrites them.
+  if (settings.autoSync && (settings.os !== before.os || settings.hostLayout !== before.hostLayout)) await syncAllKeyboards();
 };
 
 export const refreshAutoSettings = async () => {
@@ -56,8 +84,10 @@ export const refreshAutoSettings = async () => {
   const patch: Partial<Settings> = {};
   if (settings.osAuto) patch.os = detectOs();
   if (settings.hostLayoutAuto) {
-    const detected = await detectHostLayout();
+    const detected = await detectHostLayout(patch.os ?? settings.os);
     if (detected) patch.hostLayout = detected;
+    // Without the Keyboard Map API, at least pick the right US variant for the OS.
+    else if ((patch.os ?? settings.os) === 'mac' && settings.hostLayout === 'us') patch.hostLayout = 'us-mac-iso';
   }
   if (Object.keys(patch).length) setState({settings: {...getState().settings, ...patch}});
 };
@@ -70,6 +100,7 @@ export const initApp = async () => {
   const stored = await getSetting<Partial<Settings>>('settings', {});
   setState({settings: {...defaultSettings, ...stored}});
   await refreshAutoSettings();
+  void loadLibrary();
 
   const hid = (navigator as Navigator & {hid?: HID}).hid;
   if (!hid) return;
@@ -148,7 +179,7 @@ const openTransport = async (transport: HidTransport, options: {select?: boolean
   if (options.select || !getState().selectedId) {
     selectSession(id);
     // A keyboard the user just picked should be shown, not hidden behind settings.
-    if (options.select && ['settings', 'definitions', 'backups'].includes(getState().pane)) setState({pane: 'keymap'});
+    if (options.select && ['settings', 'definitions', 'backups', 'library'].includes(getState().pane)) setState({pane: 'keymap'});
   }
 
   const channel = new ViaChannel(transport);
@@ -271,7 +302,7 @@ const loadKeyboard = async (id: string, found: FoundDefinition) => {
     };
     setState((s) => ({data: {...s.data, [id]: data}}));
     updateSession(id, {status: 'ready', progress: undefined, firmwareVersion});
-    void autoBackup(id);
+    void autoBackup(id).then(() => (getState().settings.autoSync ? syncKeyboard(id) : null));
   } catch (error) {
     updateSession(id, {status: 'error', error: errorText(error), progress: undefined});
   }
@@ -436,6 +467,15 @@ export const assignKeycode = async (value: number) => {
   const ok = await applyChange(change, value);
   if (!ok) return;
   setState((s) => ({undo: [...s.undo.slice(-199), change], redo: []}));
+  // A key edited by hand no longer follows its library action.
+  const vpid = getState().sessions[selectedId]?.vendorProductId;
+  if (vpid !== undefined) {
+    await removeBindingAt(
+      'row' in change.target
+        ? {vendorProductId: vpid, layer, row: change.target.row, col: change.target.col}
+        : {vendorProductId: vpid, layer, row: -1, col: -1, encoder: {index: change.target.encoder, cw: change.target.cw}},
+    );
+  }
 
   if (settings.advanceSelection && selection.part === 'key') {
     const order = orderedKeys(ready.data).filter((k) => k.hasMatrix);
@@ -589,11 +629,12 @@ export const syncMenuValues = async (id: string) => {
 // ---------------------------------------------------------------------------
 // Macros
 
-export const writeMacros = async (macros: Macro[]) => {
-  const {selectedId} = getState();
-  const ready = requireReady(selectedId);
-  const protocol = selectedId ? getState().sessions[selectedId]?.protocol ?? 0 : 0;
-  if (!ready || !selectedId) return false;
+export const writeMacros = (macros: Macro[]) => writeMacrosFor(getState().selectedId, macros);
+
+export const writeMacrosFor = async (id: string | null, macros: Macro[]) => {
+  const ready = requireReady(id);
+  const protocol = id ? getState().sessions[id]?.protocol ?? 0 : 0;
+  if (!ready || !id) return false;
   const padded = [...macros.slice(0, ready.data.macroCount)];
   while (padded.length < ready.data.macroCount) padded.push([]);
   let bytes: number[];
@@ -610,11 +651,190 @@ export const writeMacros = async (macros: Macro[]) => {
   try {
     await ready.controller.api.writeMacroBuffer(bytes, ready.data.macroBufferSize);
     const full = [...bytes, ...new Array(ready.data.macroBufferSize - bytes.length).fill(0)];
-    updateData(selectedId, {macroBytes: full, macros: padded});
+    updateData(id, {macroBytes: full, macros: padded});
     return true;
   } catch (error) {
     toast(`Makrolar yazılamadı: ${errorText(error)}`, 'error');
     return false;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Action library: keys bound to library actions follow the computer's OS.
+
+export const currentOs = (): OsId => (getState().settings.os === 'mac' ? 'mac' : 'windows');
+
+/** Delivery context for an OS; the other OS uses its usual US layout variant. */
+export const deliveryContext = (id: string | null, os: OsId = currentOs()): DeliveryContext => {
+  const protocol = (id && getState().sessions[id]?.protocol) || 12;
+  const codec = getCodec(id) ?? KeycodeCodec.forProtocol(protocol);
+  const here = currentOs();
+  const {hostLayout} = getState().settings;
+  const host = os === here ? hostLayouts[hostLayout] : os === 'mac' ? hostLayouts['us-mac-iso'] : hostLayouts.us;
+  return {codec, host, protocol};
+};
+
+const syncing = new Set<string>();
+
+/**
+ * Rewrites every library-bound key and managed macro of a keyboard for the
+ * OS of this computer. Returns a short summary, or null when nothing changed.
+ */
+export const syncKeyboard = async (id: string, {announce = true} = {}) => {
+  const ready = requireReady(id);
+  const session = getState().sessions[id];
+  if (!ready || !session || syncing.has(id)) return null;
+  syncing.add(id);
+  try {
+    await loadLibrary();
+    const vpid = session.vendorProductId;
+    const lib = useLibrary.getState();
+    const bindings = lib.bindings.filter((b) => b.vendorProductId === vpid);
+    const slots = lib.slots.filter((x) => x.vendorProductId === vpid);
+    if (!bindings.length && !slots.length) return null;
+    const os = currentOs();
+    const ctx = deliveryContext(id, os);
+    for (const actionId of new Set(bindings.map((b) => b.actionId))) {
+      const action = useLibrary.getState().actions.find((a) => a.id === actionId);
+      if (action) await ensureTrigger(action, (o) => deliveryContext(id, o));
+    }
+    const actions = new Map(useLibrary.getState().actions.map((a) => [a.id, a]));
+    const data = getState().data[id]!;
+    const plan = planSync({
+      vendorProductId: vpid,
+      os,
+      ctx,
+      actions,
+      bindings,
+      slots,
+      keyboard: {
+        cols: data.matrix.cols,
+        layerCount: data.layerCount,
+        keymap: data.keymap,
+        encoders: data.encoders,
+        macros: data.macros,
+        macroCount: data.macroCount,
+        macroBufferSize: data.macroBufferSize,
+      },
+    });
+    if (plan.macros && !(await writeMacrosFor(id, plan.macros))) return null;
+    for (const w of plan.keyWrites) {
+      await ready.controller.api.setKeycode(w.layer, w.row, w.col, w.keycode);
+    }
+    for (const w of plan.encoderWrites) {
+      await ready.controller.api.setEncoder(w.layer, w.index, w.cw, w.keycode);
+    }
+    if (plan.keyWrites.length || plan.encoderWrites.length) {
+      updateData(id, (d) => ({
+        keymap: d.keymap.map((keys, layer) =>
+          keys.map((k, i) => plan.keyWrites.find((w) => w.layer === layer && w.row * d.matrix.cols + w.col === i)?.keycode ?? k),
+        ),
+        encoders: d.encoders.map((row, layer) =>
+          row.map((pair, e) => {
+            const ccw = plan.encoderWrites.find((w) => w.layer === layer && w.index === e && !w.cw);
+            const cw = plan.encoderWrites.find((w) => w.layer === layer && w.index === e && w.cw);
+            return [ccw?.keycode ?? pair[0], cw?.keycode ?? pair[1]] as [number, number];
+          }),
+        ),
+      }));
+    }
+    await setSlots(vpid, plan.slots);
+    await dropClearedBindings(vpid);
+    plan.warnings.slice(0, 3).forEach((w) => toast(w, 'info', 7000));
+    if (isEmptyPlan(plan)) return null;
+    const parts = [
+      plan.keyWrites.length + plan.encoderWrites.length ? `${plan.keyWrites.length + plan.encoderWrites.length} tuş` : '',
+      plan.macros ? 'makrolar' : '',
+    ].filter(Boolean);
+    const summary = `${osLabel[os]} için eşitlendi: ${parts.join(', ')}`;
+    if (announce) toast(summary, 'success');
+    return summary;
+  } catch (error) {
+    toast(`Eşitleme başarısız: ${errorText(error)}`, 'error');
+    return null;
+  } finally {
+    syncing.delete(id);
+  }
+};
+
+/** Layer-0 legend of a key (e.g. "F5"), so a binding can be described without the keyboard. */
+const baseKeyName = (id: string, row: number, col: number) => {
+  const data = getState().data[id];
+  const codec = getCodec(id);
+  const value = data?.keymap[0]?.[row * data.matrix.cols + col];
+  if (!data || !codec || value === undefined) return undefined;
+  const {settings} = getState();
+  const label = keyLabel(value, {codec, host: hostLayouts[settings.hostLayout], os: settings.os});
+  return label.main.replace(/\n/g, ' ') || undefined;
+};
+
+/** Binds a library action to the selected key and writes it right away. */
+export const assignAction = async (actionId: string) => {
+  const {selectedId, selection, layer, settings} = getState();
+  const ready = requireReady(selectedId);
+  const session = selectedId ? getState().sessions[selectedId] : undefined;
+  if (!ready || !selection || !selectedId || !session) return;
+  const key = visibleKeys(ready.data.definition, ready.data.layoutOptions).find((k) => k.id === selection.keyId);
+  if (!key) return;
+  const binding: Omit<KeyBinding, 'id'> =
+    selection.part === 'key'
+      ? {vendorProductId: session.vendorProductId, layer, row: key.row, col: key.col, actionId, keyName: baseKeyName(selectedId, key.row, key.col)}
+      : {vendorProductId: session.vendorProductId, layer, row: -1, col: -1, encoder: {index: key.ei ?? 0, cw: selection.part === 'cw'}, actionId};
+  if (selection.part === 'key' && !key.hasMatrix) return;
+  await setBinding(binding);
+  await syncKeyboard(selectedId, {announce: false});
+  const action = useLibrary.getState().actions.find((a) => a.id === actionId);
+  if (action) {
+    const delivery = resolveDelivery(action, currentOs(), deliveryContext(selectedId));
+    toast(`“${action.name}” atandı. ${delivery.summary}.`, delivery.mode === 'unavailable' ? 'error' : 'success');
+  }
+  if (settings.advanceSelection && selection.part === 'key') {
+    const order = orderedKeys(ready.data).filter((k) => k.hasMatrix);
+    const next = order[order.findIndex((k) => k.id === key.id) + 1];
+    setState({selection: next ? {keyId: next.id, part: 'key'} : null});
+  }
+};
+
+/** Brings every connected keyboard in line with the library; returns how many changed. */
+export const syncAllKeyboards = async ({announce = true} = {}) => {
+  let changed = 0;
+  for (const session of Object.values(getState().sessions)) {
+    if (session.status !== 'ready') continue;
+    if (await syncKeyboard(session.id, {announce})) changed++;
+  }
+  return changed;
+};
+
+/** Saves an action from the library editor and updates the keyboards using it. */
+export const saveLibraryAction = async (draft: LibraryAction) => {
+  const name = draft.name.trim() || 'Adsız eylem';
+  let saved = await saveAction({...draft, name, tags: [...new Set(draft.tags.map((t) => t.trim()).filter(Boolean))]});
+  // Keyboards not connected right now still need the trigger in the helper file.
+  if (useLibrary.getState().bindings.some((b) => b.actionId === saved.id)) {
+    saved = await ensureTrigger(saved, (os) => deliveryContext(getState().selectedId, os));
+  }
+  await syncAllKeyboards();
+  return useLibrary.getState().actions.find((a) => a.id === saved.id) ?? saved;
+};
+
+export const deleteLibraryAction = async (id: string) => {
+  await deleteAction(id);
+  await syncAllKeyboards({announce: false});
+};
+
+/** Takes an action off one key; connected keyboards are updated right away. */
+export const unbindAction = async (binding: KeyBinding) => {
+  await clearBinding(binding);
+  await syncAllKeyboards({announce: false});
+};
+
+export const importLibraryFile = async (file: File) => {
+  try {
+    const added = await importLibrary(JSON.parse(await file.text()));
+    toast(added ? `${added} eylem içe aktarıldı.` : 'Dosyadaki eylemler zaten güncel.', 'success');
+    if (added) await syncAllKeyboards();
+  } catch (error) {
+    toast(error instanceof SyntaxError ? 'Dosya okunamadı (JSON değil).' : errorText(error), 'error', 7000);
   }
 };
 

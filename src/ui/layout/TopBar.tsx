@@ -5,6 +5,7 @@ import {Badge, IconButton} from '@/ui/components/ui';
 
 const paneTitles = {
   keymap: 'Tuş haritası',
+  library: 'Eylem kütüphanesi',
   macros: 'Makrolar',
   lighting: 'Işık ve ayarlar',
   tester: 'Tuş testi',

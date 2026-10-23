@@ -142,7 +142,7 @@ export const Panel = ({title, actions, children, className}: {title?: ReactNode;
   </section>
 );
 
-export const Badge = ({children, tone = 'neutral'}: {children: ReactNode; tone?: 'neutral' | 'accent' | 'success' | 'danger' | 'macro' | 'layer'}) => (
+export const Badge = ({children, tone = 'neutral'}: {children: ReactNode; tone?: 'neutral' | 'accent' | 'success' | 'danger' | 'macro' | 'layer' | 'action'}) => (
   <span
     className={cx(
       'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
@@ -152,6 +152,7 @@ export const Badge = ({children, tone = 'neutral'}: {children: ReactNode; tone?:
       tone === 'danger' && 'bg-danger-soft text-danger',
       tone === 'macro' && 'bg-macro-soft text-macro',
       tone === 'layer' && 'bg-layer-soft text-layer',
+      tone === 'action' && 'bg-action-soft text-action',
     )}
   >
     {children}
@@ -179,12 +180,14 @@ export const FileButton = ({
   onFile,
   children,
   variant = 'secondary',
+  size,
   icon,
 }: {
   accept: string;
   onFile: (file: File) => void;
   children: ReactNode;
   variant?: ButtonProps['variant'];
+  size?: ButtonProps['size'];
   icon?: ReactNode;
 }) => {
   const ref = useRef<HTMLInputElement>(null);
@@ -201,7 +204,7 @@ export const FileButton = ({
           event.target.value = '';
         }}
       />
-      <Button variant={variant} icon={icon} onClick={() => ref.current?.click()}>
+      <Button variant={variant} size={size} icon={icon} onClick={() => ref.current?.click()}>
         {children}
       </Button>
     </>
@@ -216,15 +219,16 @@ export const EmptyState = ({icon, title, children}: {icon?: ReactNode; title: st
   </div>
 );
 
-export const downloadJson = (filename: string, data: unknown) => {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
+export const downloadText = (filename: string, text: string, type = 'text/plain;charset=utf-8') => {
+  const url = URL.createObjectURL(new Blob([text], {type}));
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+export const downloadJson = (filename: string, data: unknown) => downloadText(filename, JSON.stringify(data, null, 2), 'application/json');
 
 export const slug = (text: string) =>
   text

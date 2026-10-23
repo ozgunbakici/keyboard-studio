@@ -27,6 +27,7 @@ const toneColor: Record<string, string | undefined> = {
   macro: 'var(--macro)',
   mod: 'var(--mod)',
   custom: 'var(--accent)',
+  action: 'var(--action)',
 };
 
 /** Shrinks text to fit the keycap width. */

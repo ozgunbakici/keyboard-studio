@@ -1,6 +1,7 @@
 import Dexie, {type Table} from 'dexie';
 import type {AnyDefinition, DefinitionVersion} from '@/definitions/parse';
 import type {BackupFile} from '@/state/backup';
+import type {KeyBinding, LibraryAction, SlotUse} from '@/library/types';
 
 export type StoredDefinition = {
   vendorProductId: number;
@@ -26,6 +27,9 @@ class StudioDatabase extends Dexie {
   definitions!: Table<StoredDefinition, [number, DefinitionVersion]>;
   backups!: Table<StoredBackup, number>;
   settings!: Table<StoredSetting, string>;
+  actions!: Table<LibraryAction, string>;
+  bindings!: Table<KeyBinding, number>;
+  slots!: Table<SlotUse, [number, number]>;
 
   constructor() {
     super('klavye-studio');
@@ -33,6 +37,11 @@ class StudioDatabase extends Dexie {
       definitions: '[vendorProductId+version], vendorProductId, savedAt',
       backups: '++id, vendorProductId, createdAt',
       settings: 'key',
+    });
+    this.version(2).stores({
+      actions: 'id, updatedAt',
+      bindings: '++id, vendorProductId, actionId',
+      slots: '[vendorProductId+slot], vendorProductId, actionId',
     });
   }
 }

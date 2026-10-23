@@ -39,7 +39,7 @@ export const SettingsPane = () => {
             disabled={detecting}
             onClick={async () => {
               setDetecting(true);
-              const detected = await detectHostLayout();
+              const detected = await detectHostLayout(settings.os);
               setDetecting(false);
               if (detected) {
                 await updateSettings({hostLayout: detected, hostLayoutAuto: true});
@@ -71,6 +71,12 @@ export const SettingsPane = () => {
 
       <section className="rounded-xl border border-border bg-surface px-5">
         <h2 className="pt-4 text-sm font-semibold">Çalışma şekli</h2>
+        <Row
+          title="Klavyeleri bu bilgisayara göre eşitle"
+          description="Kütüphaneden atanan tuşlar, klavye bağlanınca ve işletim sistemi ya da düzen değişince bu bilgisayara göre yeniden yazılır (ör. Kopyala: Windows’ta Ctrl+C, Mac’te ⌘C)."
+        >
+          <Toggle checked={settings.autoSync} onChange={(autoSync) => void updateSettings({autoSync})} label="Otomatik eşitle" />
+        </Row>
         <Row title="Atamadan sonra sonraki tuşa geç" description="Bir tuşa keycode atayınca seçim otomatik olarak sıradaki tuşa ilerler; hızlı düzenleme için.">
           <Toggle checked={settings.advanceSelection} onChange={(advanceSelection) => void updateSettings({advanceSelection})} label="Sonraki tuşa geç" />
         </Row>

@@ -1,127 +1,16 @@
 import {useEffect, useMemo, useState} from 'react';
-import {ArrowDown, ArrowUp, Clock, Command, Keyboard, Plus, RotateCcw, Save, Trash2, Type, Zap} from 'lucide-react';
-import {staticGroups} from '@/keycodes/catalog';
+import {BookMarked, RotateCcw, Save, Zap} from 'lucide-react';
+import {focusAction} from '@/library/store';
 import {compileMacro, decompileMacro, simulateMacro} from '@/macros/host-text';
 import {isTextOnly, macroText, macroToSteps, sameMacro, stepsToMacro, type MacroStep} from '@/macros/steps';
-import {writeMacros} from '@/state/actions';
+import {StepsEditor} from '@/ui/macros/StepsEditor';
+import {setPane, writeMacros} from '@/state/actions';
 import {useSelectedData, useSelectedSession, useStudio} from '@/state/store';
 import {confirm} from '@/ui/components/Dialog';
-import {Badge, Button, EmptyState, IconButton, Select, cx} from '@/ui/components/ui';
-import {useLabelContext} from '@/ui/hooks';
-import {encodeMacro, supportsDelays, type Macro} from '@/via/macro-bytes';
+import {Badge, Button, EmptyState, cx} from '@/ui/components/ui';
+import {useLabelContext, useSlotOwners} from '@/ui/hooks';
+import {encodeMacro, type Macro} from '@/via/macro-bytes';
 import {hostLayouts} from '@/keycodes/host-layouts';
-
-const basicKeyOptions = staticGroups.basic.sections
-  .flatMap((s) => s.keys)
-  .filter((k) => k.code !== 'KC_NO' && k.code !== 'KC_TRNS');
-
-const modifierOptions = [
-  {code: 0xe0, label: 'Ctrl', mac: '⌃ Control'},
-  {code: 0xe1, label: 'Shift', mac: '⇧ Shift'},
-  {code: 0xe2, label: 'Alt', mac: '⌥ Option'},
-  {code: 0xe3, label: 'Win', mac: '⌘ Command'},
-  {code: 0xe6, label: 'AltGr', mac: 'Sağ ⌥'},
-];
-
-const KeySelect = ({value, onChange}: {value: number; onChange: (value: number) => void}) => {
-  const ctx = useLabelContext();
-  return (
-    <Select
-      value={value}
-      onChange={onChange}
-      className="w-48"
-      label="Tuş"
-      options={basicKeyOptions.flatMap((k) => {
-        const v = ctx.codec.parse(k.code);
-        return v === null || v > 0xff ? [] : [{value: v, label: `${k.label} · ${k.code.replace(/^KC_/, '')}`}];
-      })}
-    />
-  );
-};
-
-const StepRow = ({
-  step,
-  onChange,
-  onRemove,
-  onMove,
-  isMac,
-}: {
-  step: MacroStep;
-  onChange: (step: MacroStep) => void;
-  onRemove: () => void;
-  onMove: (dir: -1 | 1) => void;
-  isMac: boolean;
-}) => {
-  const icon = {text: <Type size={15} />, tap: <Keyboard size={15} />, chord: <Command size={15} />, down: <ArrowDown size={15} />, up: <ArrowUp size={15} />, delay: <Clock size={15} />}[step.kind];
-  const title = {text: 'Metin', tap: 'Tuşa bas', chord: 'Kısayol', down: 'Basılı tut', up: 'Bırak', delay: 'Bekle'}[step.kind];
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
-      <span className="flex w-24 items-center gap-1.5 text-[13px] font-medium text-muted">
-        {icon}
-        {title}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        {step.kind === 'text' && (
-          <input
-            value={step.text}
-            onChange={(event) => onChange({...step, text: event.target.value})}
-            className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-accent"
-            placeholder="Yazılacak metin"
-          />
-        )}
-        {(step.kind === 'tap' || step.kind === 'down' || step.kind === 'up') && <KeySelect value={step.keycode} onChange={(keycode) => onChange({...step, keycode})} />}
-        {step.kind === 'chord' && (
-          <>
-            {modifierOptions.map((m) => (
-              <label
-                key={m.code}
-                className={cx(
-                  'flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-[12px]',
-                  step.mods.includes(m.code) ? 'border-mod bg-mod-soft text-fg' : 'border-border text-muted',
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={step.mods.includes(m.code)}
-                  onChange={(event) =>
-                    onChange({...step, mods: event.target.checked ? [...step.mods, m.code].sort((a, b) => a - b) : step.mods.filter((c) => c !== m.code)})
-                  }
-                />
-                {isMac ? m.mac : m.label}
-              </label>
-            ))}
-            <span className="text-faint">+</span>
-            <KeySelect value={step.keycode} onChange={(keycode) => onChange({...step, keycode})} />
-          </>
-        )}
-        {step.kind === 'delay' && (
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <input
-              type="number"
-              min={0}
-              max={9999}
-              value={step.ms}
-              onChange={(event) => onChange({...step, ms: Math.max(0, Math.min(9999, Number(event.target.value) || 0))})}
-              className="h-9 w-24 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:border-accent"
-            />
-            ms
-          </label>
-        )}
-      </div>
-      <div className="flex items-center">
-        <IconButton label="Yukarı taşı" onClick={() => onMove(-1)}>
-          <ArrowUp size={14} />
-        </IconButton>
-        <IconButton label="Aşağı taşı" onClick={() => onMove(1)}>
-          <ArrowDown size={14} />
-        </IconButton>
-        <IconButton label="Sil" onClick={onRemove}>
-          <Trash2 size={14} />
-        </IconButton>
-      </div>
-    </div>
-  );
-};
 
 export const MacrosPane = () => {
   const data = useSelectedData();
@@ -129,6 +18,7 @@ export const MacrosPane = () => {
   const hostId = useStudio((s) => s.settings.hostLayout);
   const os = useStudio((s) => s.settings.os);
   const ctx = useLabelContext();
+  const owners = useSlotOwners();
   const host = hostLayouts[hostId];
   const protocol = session?.protocol ?? 0;
 
@@ -186,7 +76,6 @@ export const MacrosPane = () => {
   const percent = Math.min(100, (used / data.macroBufferSize) * 100);
   const over = used > data.macroBufferSize;
 
-  const addStep = (step: MacroStep) => setSteps([...steps, step]);
   const save = async () => {
     const bad = compiled.findIndex((c) => c.unsupported.length);
     if (bad >= 0 && !(await confirm({title: 'Yazılamayan karakterler', body: `M${bad} içinde ${host.label} düzeninde yazılamayan karakterler var (${compiled[bad].unsupported.join(' ')}). Bunlar atlanacak.`, confirmLabel: 'Yine de kaydet'}))) {
@@ -226,7 +115,10 @@ export const MacrosPane = () => {
                 <span className="flex h-7 w-9 shrink-0 items-center justify-center rounded-md bg-macro-soft font-mono text-[12px] font-semibold text-macro">M{i}</span>
                 <span className="min-w-0 flex-1">
                   <span className={cx('block truncate text-[13px]', summary ? 'text-fg' : 'text-faint')}>{summary || 'Boş'}</span>
-                  <span className="block text-[11px] text-faint">{Number.isNaN(sizes[i]) ? 'hatalı' : `${sizes[i]} bayt`}</span>
+                  <span className="block truncate text-[11px] text-faint">
+                    {Number.isNaN(sizes[i]) ? 'hatalı' : `${sizes[i]} bayt`}
+                    {owners.has(i) ? ` · eylem: ${owners.get(i)!.name}` : ''}
+                  </span>
                 </span>
                 {compiled[i]?.dirty && <span className="h-2 w-2 rounded-full bg-macro" title="Kaydedilmedi" />}
               </button>
@@ -275,46 +167,24 @@ export const MacrosPane = () => {
                 className="w-full resize-y rounded-xl border border-border bg-surface p-4 font-mono text-sm leading-relaxed outline-none focus:border-accent"
               />
             ) : (
-              <div className="flex flex-col gap-2">
-                {steps.length === 0 && <p className="text-sm text-faint">Henüz adım yok. Aşağıdan ekle.</p>}
-                {steps.map((step, i) => (
-                  <StepRow
-                    key={i}
-                    step={step}
-                    isMac={isMac}
-                    onChange={(next) => setSteps(steps.map((s, j) => (j === i ? next : s)))}
-                    onRemove={() => setSteps(steps.filter((_, j) => j !== i))}
-                    onMove={(dir) => {
-                      const target = i + dir;
-                      if (target < 0 || target >= steps.length) return;
-                      const next = [...steps];
-                      [next[i], next[target]] = [next[target], next[i]];
-                      setSteps(next);
-                    }}
-                  />
-                ))}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button size="sm" icon={<Plus size={14} />} onClick={() => addStep({kind: 'text', text: ''})}>
-                    Metin
-                  </Button>
-                  <Button size="sm" icon={<Plus size={14} />} onClick={() => addStep({kind: 'chord', mods: [isMac ? 0xe3 : 0xe0], keycode: 0x06})}>
-                    Kısayol
-                  </Button>
-                  <Button size="sm" icon={<Plus size={14} />} onClick={() => addStep({kind: 'tap', keycode: 0x28})}>
-                    Tuş
-                  </Button>
-                  {supportsDelays(protocol) && (
-                    <Button size="sm" icon={<Plus size={14} />} onClick={() => addStep({kind: 'delay', ms: 200})}>
-                      Bekleme
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" icon={<Plus size={14} />} onClick={() => addStep({kind: 'down', keycode: 0xe1})}>
-                    Basılı tut
-                  </Button>
-                  <Button size="sm" variant="ghost" icon={<Plus size={14} />} onClick={() => addStep({kind: 'up', keycode: 0xe1})}>
-                    Bırak
-                  </Button>
-                </div>
+              <StepsEditor steps={steps} setSteps={setSteps} protocol={protocol} isMac={isMac} />
+            )}
+
+            {owners.has(selected) && (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-action/40 bg-action-soft px-3 py-2 text-sm">
+                <BookMarked size={15} className="text-action" />
+                <span className="min-w-0 flex-1">
+                  Bu makro “{owners.get(selected)!.name}” eylemine ait. Buradaki değişiklikler bir sonraki eşitlemede eylemin içeriğiyle değiştirilir.
+                </span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    focusAction(owners.get(selected)!.id);
+                    setPane('library');
+                  }}
+                >
+                  Eylemi düzenle
+                </Button>
               </div>
             )}
 

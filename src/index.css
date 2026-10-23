@@ -24,6 +24,8 @@
   --layer-soft: rgb(79 209 181 / 0.15);
   --mod: #c39bff;
   --mod-soft: rgb(195 155 255 / 0.14);
+  --action: #f78fb3;
+  --action-soft: rgb(247 143 179 / 0.15);
   --success: #4ade80;
   --danger: #f87171;
   --danger-soft: rgb(248 113 113 / 0.14);
@@ -57,6 +59,8 @@
   --layer-soft: rgb(15 143 116 / 0.12);
   --mod: #7b4fd6;
   --mod-soft: rgb(123 79 214 / 0.1);
+  --action: #c2185b;
+  --action-soft: rgb(194 24 91 / 0.1);
   --success: #15803d;
   --danger: #dc2626;
   --danger-soft: rgb(220 38 38 / 0.1);
@@ -90,6 +94,8 @@
   --color-layer-soft: var(--layer-soft);
   --color-mod: var(--mod);
   --color-mod-soft: var(--mod-soft);
+  --color-action: var(--action);
+  --color-action-soft: var(--action-soft);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);

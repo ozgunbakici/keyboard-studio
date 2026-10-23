@@ -1,4 +1,4 @@
-import {Archive, FileJson, FlaskConical, Keyboard, Lightbulb, Plus, Settings, Sparkles, Usb, Zap} from 'lucide-react';
+import {Archive, BookMarked, FileJson, FlaskConical, Keyboard, Lightbulb, Plus, Settings, Sparkles, Usb, Zap} from 'lucide-react';
 import {useMemo, type ReactNode} from 'react';
 import {hostLayouts} from '@/keycodes/host-layouts';
 import {connectDemo, connectWebHid, selectSession, setPane} from '@/state/actions';
@@ -25,6 +25,7 @@ const statusText: Record<SessionInfo['status'], string> = {
 
 const navItems: {pane: Pane; label: string; icon: ReactNode; needsKeyboard: boolean}[] = [
   {pane: 'keymap', label: 'Tuş haritası', icon: <Keyboard size={17} />, needsKeyboard: true},
+  {pane: 'library', label: 'Eylemler', icon: <BookMarked size={17} />, needsKeyboard: false},
   {pane: 'macros', label: 'Makrolar', icon: <Zap size={17} />, needsKeyboard: true},
   {pane: 'lighting', label: 'Işık ve ayarlar', icon: <Lightbulb size={17} />, needsKeyboard: true},
   {pane: 'tester', label: 'Tuş testi', icon: <FlaskConical size={17} />, needsKeyboard: true},

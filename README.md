@@ -4,7 +4,7 @@ Tarayıcıda çalışan, VIA uyumlu kişisel klavye yapılandırıcısı. Klavye
 
 Türkçe kullanım için tasarlandı: tuş etiketleri bilgisayardaki düzene göre (Türkçe Q, Türkçe F, US) gösterilir ve makro metinleri o düzene göre doğru tuş basımlarına çevrilir. VIA’da `ad@gmail.com` makrosu Türkçe Q’da `ad'gmaılçcom` yazar; burada birebir `ad@gmail.com` yazar.
 
-## Neler var (Faz 1)
+## Neler var
 
 - **Bağlantı:** VIA protokolü 9–13, birden çok klavye, izin verilmiş klavyelere otomatik yeniden bağlanma, seçilen klavyenin ışıklarını yakıp söndürme.
 - **Klavye tanımları:** VIA’nın 2000’den fazla tanımı uygulamayla gelir. Listede olmayan klavyeler (birçok Neo / QK modeli) için üreticinin JSON dosyası bir kez yüklenir ve kalıcı olarak saklanır.
@@ -15,6 +15,16 @@ Türkçe kullanım için tasarlandı: tuş etiketleri bilgisayardaki düzene gö
 - **Tuş testi:** Matris okuması (firmware izin veriyorsa) veya bilgisayar tuş olaylarıyla.
 - **Yedekler:** Bağlanınca otomatik yedek, elle yedek, geri yükleme, VIA `.layout.json` içe/dışa aktarma.
 - **Demo klavye:** Donanım olmadan her özelliği deneyen sanal VIA klavyesi.
+
+### Eylem kütüphanesi (Faz 2)
+
+Bir işi bir kez tanımla, istediğin klavyenin istediğin tuşuna ata. Eylemler tarayıcıda saklanır, makro slotu sayısıyla sınırlı değildir.
+
+- **Türler:** kısayol, metin, adım dizisi (tuş / kısayol / bekleme), uygulama aç, komut çalıştır, web adresi aç. 19 hazır eylemle başlanabilir (Kopyala, Ekran görüntüsü, VS Code, Python `main` bloğu…).
+- **Windows ve macOS sürümleri:** Bir eylemin her sistem için ayrı içeriği olabilir (Windows’ta Ctrl+C, Mac’te ⌘C). Klavye bu uygulama açıkken bir bilgisayara bağlanınca, atanmış tuşlar o bilgisayarın sistemine göre yeniden yazılır. Klavye en son hangi bilgisayarda eşitlendiyse onun sürümüyle kalır.
+- **En ucuz yol seçilir:** Kısayollar tek tuş koduna dönüşür, makro hafızası harcamaz. Metin ve adım dizileri klavyenin makro hafızasına yazılır (boş slotlar sondan kullanılır, senin makrolarına dokunulmaz). Klavyenin kendisi yapamayan işler yardımcı programa gider.
+- **Yardımcı programlar:** Uygulama açma, komut çalıştırma, web adresi ve US düzeninde yazılamayan harfler (ş, ğ, ı…) için klavye Ctrl+Alt+Shift+F13 gibi kimsenin kullanmadığı bir kombinasyon gönderir. Uygulama bunun için Windows’ta **AutoHotkey v2** (`klavye-studio.ahk`), Mac’te **Hammerspoon** (`klavye-studio.lua`) dosyası üretir. Yardımcıyı yalnızca istediğin bilgisayarlara kurman yeterli; kurulu olmayan bilgisayarda bu tuşlar hiçbir şey yapmaz. İndirilen dosya eskidiğinde uygulama uyarır.
+- **Dışa / içe aktarma:** Kütüphane tek bir JSON dosyası olarak başka tarayıcıya taşınabilir.
 
 ## Kullanım
 
@@ -45,7 +55,8 @@ Kod yapısı:
 | `src/emulator` | Protokolü konuşan sanal klavye ve demo tanımı |
 | `src/keycodes` | Protokole göre keycode tabloları, çözümleyici, Türkçe katalog, bilgisayar düzenleri |
 | `src/definitions` | Tanım okuma, KLE geometrisi, layout seçenekleri, menüler |
-| `src/macros` | Metin ↔ tuş basımı çevirisi (TR-Q / TR-F / US) |
+| `src/macros` | Metin ↔ tuş basımı çevirisi (US, US-Mac, TR-Q, TR-F) |
+| `src/library` | Eylem kütüphanesi: işletim sistemine göre teslim, eşitleme planı, tetikleyiciler, yardımcı dosya üretimi |
 | `src/state` | Uygulama durumu, klavye işlemleri, yedek formatı |
 | `src/ui` | Arayüz |
 
@@ -55,7 +66,7 @@ Kod yapısı:
 
 ## Yol haritası
 
-- **Faz 2 – Makrolar:** Sınırsız makro kütüphanesi, profiller, işletim sistemine göre makro sürümleri (Mac/Windows katmanı + bağlanınca eşitleme), makro kaydı, macOS Türkçe düzen tabloları, uygulama açma / script çalıştırma için AutoHotkey ve Hammerspoon ayar dosyası üretimi.
+- **Faz 2 – Eylem kütüphanesi:** ✓ Kütüphane, Windows/macOS sürümleri, bağlanınca eşitleme, AutoHotkey ve Hammerspoon dosyaları. Sırada: makro kaydı, uygulama açık değilken de işletim sistemine göre çalışan katman seçeneği.
 - **Faz 3 – Yazı antrenmanı:** 10 parmak dersleri, Türkçe/İngilizce metinler, bolca kod pratiği, sembol alıştırmaları, kendi klavyende ısı haritası, istatistikler.
 - **Faz 4:** Bilgisayarlar arası senkron, tuş başına RGB, custom firmware (OS algılama) denemeleri.
 
