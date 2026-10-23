@@ -230,7 +230,7 @@ export const KeymapPane = () => {
             encoderLabelsFor={encodersMapped ? encoderLabelsFor : undefined}
             selection={selection}
             onSelect={(next) => setSelection(selection?.keyId === next.keyId && selection.part === next.part ? null : next)}
-            className="max-h-[44vh] w-full select-none"
+            className="max-h-[40vh] w-full select-none"
             ariaLabel={`${data.name}, katman ${layer}`}
           />
         </div>
@@ -310,7 +310,7 @@ export const KeymapPane = () => {
         </div>
       </div>
 
-      <div className="min-h-[220px] flex-1 overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="min-h-[300px] flex-1 overflow-hidden rounded-xl border border-border bg-surface">
         <KeycodePicker
           onPick={(value) => void assignKeycode(value)}
           onPickAction={(id) => void assignAction(id)}

@@ -67,3 +67,14 @@ test('lighting controls are translated and writable', async ({page}) => {
   // Speed is hidden when lighting is off (showIf).
   await expect(page.getByText('Efekt hızı')).toBeHidden();
 });
+
+test('mouse keys have their own tab and turn up when searching "mouse"', async ({page}) => {
+  await openDemo(page, 'us');
+  await key(page, 2, 1).click();
+  await page.getByRole('tab', {name: 'Fare'}).click();
+  await page.getByRole('button', {name: 'Sol tık', exact: true}).click();
+  await expect(key(page, 2, 1)).toHaveAttribute('aria-label', /^Sol tık/);
+  await key(page, 2, 3).click();
+  await page.getByPlaceholder(/Tuş ara/).fill('mouse');
+  await expect(page.getByRole('button', {name: 'Teker ↓', exact: true})).toBeVisible();
+});

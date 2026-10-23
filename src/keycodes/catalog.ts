@@ -194,25 +194,51 @@ const mediaGroup: CatalogGroup = {
         k('KC_WWW_FAVORITES', 'Favoriler'),
       ],
     },
+  ],
+};
+
+// Titles carry the English words too, so searching "mouse", "click" or "scroll" finds them.
+const mouseGroup: CatalogGroup = {
+  id: 'mouse',
+  label: 'Fare',
+  description:
+    'Fareyi klavyeden kullan: imleci oynat, tıkla, kaydır. Klavyenin firmware’inde fare tuşları (Mouse keys) açıksa çalışır; çoğu VIA klavyede açıktır. ' +
+    'Genelde ayrı bir katmana konur ve o katman bir MO tuşuyla açılır. Knob’a Teker ↑ / ↓ atanırsa sayfayı kaydırır.',
+  sections: [
     {
-      label: 'Fare',
+      label: 'İmleç',
       keys: [
-        k('KC_MS_UP', 'Fare ↑'),
-        k('KC_MS_DOWN', 'Fare ↓'),
-        k('KC_MS_LEFT', 'Fare ←'),
-        k('KC_MS_RIGHT', 'Fare →'),
-        k('KC_MS_BTN1', 'Sol tık'),
-        k('KC_MS_BTN2', 'Sağ tık'),
-        k('KC_MS_BTN3', 'Orta tık'),
-        k('KC_MS_BTN4', 'Tık 4'),
-        k('KC_MS_BTN5', 'Tık 5'),
-        k('KC_MS_WH_UP', 'Teker ↑'),
-        k('KC_MS_WH_DOWN', 'Teker ↓'),
-        k('KC_MS_WH_LEFT', 'Teker ←'),
-        k('KC_MS_WH_RIGHT', 'Teker →'),
-        k('KC_MS_ACCEL0', 'Hız 0'),
-        k('KC_MS_ACCEL1', 'Hız 1'),
-        k('KC_MS_ACCEL2', 'Hız 2'),
+        k('KC_MS_UP', 'Fare ↑', 'Fare (mouse) imlecini yukarı götürür; basılı tuttukça hızlanır'),
+        k('KC_MS_DOWN', 'Fare ↓', 'Fare (mouse) imlecini aşağı götürür; basılı tuttukça hızlanır'),
+        k('KC_MS_LEFT', 'Fare ←', 'Fare (mouse) imlecini sola götürür; basılı tuttukça hızlanır'),
+        k('KC_MS_RIGHT', 'Fare →', 'Fare (mouse) imlecini sağa götürür; basılı tuttukça hızlanır'),
+      ],
+    },
+    {
+      label: 'Tıklama',
+      keys: [
+        k('KC_MS_BTN1', 'Sol tık', 'Farenin sol tuşu (mouse left click); basılı tutunca sürükler'),
+        k('KC_MS_BTN2', 'Sağ tık', 'Farenin sağ tuşu (mouse right click)'),
+        k('KC_MS_BTN3', 'Orta tık', 'Farenin orta tuşu, tekerleğe basmak (mouse middle click)'),
+        k('KC_MS_BTN4', 'Tık 4', 'Farenin 4. tuşu (mouse button 4); tarayıcıda genelde geri'),
+        k('KC_MS_BTN5', 'Tık 5', 'Farenin 5. tuşu (mouse button 5); tarayıcıda genelde ileri'),
+      ],
+    },
+    {
+      label: 'Tekerlek',
+      keys: [
+        k('KC_MS_WH_UP', 'Teker ↑', 'Fare tekerleği: yukarı kaydırır (mouse scroll up)'),
+        k('KC_MS_WH_DOWN', 'Teker ↓', 'Fare tekerleği: aşağı kaydırır (mouse scroll down)'),
+        k('KC_MS_WH_LEFT', 'Teker ←', 'Fare tekerleği: sola kaydırır (mouse scroll left)'),
+        k('KC_MS_WH_RIGHT', 'Teker →', 'Fare tekerleği: sağa kaydırır (mouse scroll right)'),
+      ],
+    },
+    {
+      label: 'Hız',
+      keys: [
+        k('KC_MS_ACCEL0', 'Hız 0', 'Basılıyken imleç yavaş gider, hassas işler için (mouse speed)'),
+        k('KC_MS_ACCEL1', 'Hız 1', 'Basılıyken imleç orta hızda gider (mouse speed)'),
+        k('KC_MS_ACCEL2', 'Hız 2', 'Basılıyken imleç hızlı gider (mouse speed)'),
       ],
     },
   ],
@@ -449,11 +475,11 @@ export const buildCustomGroup = (keycodes: CustomKeycodeInfo[] | undefined): Cat
       }
     : null;
 
-export const staticGroups = {basic: basicGroup, media: mediaGroup, special: specialGroup};
+export const staticGroups = {basic: basicGroup, media: mediaGroup, mouse: mouseGroup, special: specialGroup};
 
 /** Index of every static catalog key by code for fast label lookup. */
 export const catalogIndex: Map<string, CatalogKey> = new Map(
-  [basicGroup, mediaGroup, specialGroup, {id: 'l', label: '', sections: [{label: '', keys: [...backlightKeys, ...legacyRgbKeys, ...underglowKeys, ...rgbMatrixKeys]}]}]
+  [basicGroup, mediaGroup, mouseGroup, specialGroup, {id: 'l', label: '', sections: [{label: '', keys: [...backlightKeys, ...legacyRgbKeys, ...underglowKeys, ...rgbMatrixKeys]}]}]
     .flatMap((group) => group.sections)
     .flatMap((section) => section.keys)
     .map((key) => [key.code, key] as const),

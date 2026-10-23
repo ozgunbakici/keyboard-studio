@@ -153,7 +153,7 @@ export const useCatalog = (): CatalogGroup[] => {
   const host = useStudio((s) => s.settings.hostLayout);
   const slotNames = useSlotNames();
   return useMemo(() => {
-    const groups: CatalogGroup[] = [staticGroups.basic, buildSymbolGroup(hostLayouts[host]), staticGroups.media];
+    const groups: CatalogGroup[] = [staticGroups.basic, buildSymbolGroup(hostLayouts[host]), staticGroups.media, staticGroups.mouse];
     groups.push(buildLayerGroup(data?.layerCount ?? 4, protocol));
     if (data?.macroCount) groups.push(buildMacroGroup(data.macroCount, macroNames(data, slotNames)));
     groups.push(staticGroups.special);
