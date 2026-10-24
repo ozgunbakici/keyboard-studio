@@ -88,8 +88,8 @@ export const MacrosPane = () => {
   };
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[260px_minmax(0,1fr)] gap-0">
-      <div className="flex min-h-0 flex-col border-r border-border bg-surface">
+    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-0 md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-none">
+      <div className="flex max-h-56 min-h-0 flex-col border-b border-border bg-surface md:max-h-none md:border-r md:border-b-0">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between text-[12px] text-muted">
             <span>Hafıza</span>

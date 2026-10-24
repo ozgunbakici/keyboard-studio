@@ -115,9 +115,9 @@ export const PracticeView = () => {
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-5">
       <div className="mx-auto flex max-w-5xl flex-col gap-4">
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Metin türü">
+        <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0" role="radiogroup" aria-label="Metin türü">
           {sources.map((s) => (
             <button
               key={s.id}
@@ -126,7 +126,7 @@ export const PracticeView = () => {
               aria-checked={source === s.id}
               onClick={() => choose(s.id)}
               className={cx(
-                'rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
+                'shrink-0 rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-colors',
                 source === s.id ? 'border-accent bg-accent-soft text-fg' : 'border-border text-muted hover:text-fg',
               )}
             >

@@ -48,10 +48,14 @@ export const normalizeCode = (code: string) => {
   return lines.map((line) => line.slice(Number.isFinite(indent) ? indent : 0)).join('\n');
 };
 
-/** Collapses whitespace in free text (pasted text keeps its words and line breaks). */
+/** Collapses whitespace in free text and makes typographic punctuation typeable on a US layout. */
 export const normalizeProse = (text: string) =>
   text
     .replace(/\r\n?/g, '\n')
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”„]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...')
     .split('\n')
     .map((line) => line.replace(/[ \t]+/g, ' ').trim())
     .filter(Boolean)

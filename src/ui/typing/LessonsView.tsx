@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react';
-import {ArrowRight, Lightbulb, RotateCcw} from 'lucide-react';
+import {ArrowRight, ChevronLeft, ChevronRight, Lightbulb, RotateCcw} from 'lucide-react';
 import type {TypingResult} from '@/typing/engine';
 import {lessonStars, lessonText, lessons} from '@/typing/lessons';
 import {lessonBest} from '@/typing/stats';
 import {saveTypingRecord, toRecord, updateTypingSettings, useTyping, worthKeeping} from '@/typing/store';
 import {seededRng} from '@/typing/text';
-import {Button, Select, Toggle, cx} from '@/ui/components/ui';
+import {Button, IconButton, Select, Toggle, cx} from '@/ui/components/ui';
 import {ResultCard, Stars} from './ResultCard';
 import {TypingRunner} from './TypingRunner';
 
@@ -50,8 +50,8 @@ export const LessonsView = () => {
   };
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)]">
-      <nav className="min-h-0 overflow-y-auto border-r border-border bg-surface p-2" aria-label="Dersler">
+    <div className="grid min-h-0 flex-1 md:grid-cols-[260px_minmax(0,1fr)]">
+      <nav className="hidden min-h-0 overflow-y-auto border-r border-border bg-surface p-2 md:block" aria-label="Dersler">
         {groups.map((group) => (
           <div key={group} className="mb-2">
             <div className="px-2.5 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-faint uppercase">{group}</div>
@@ -74,8 +74,24 @@ export const LessonsView = () => {
         ))}
       </nav>
 
-      <div className="min-h-0 overflow-y-auto px-6 py-5">
+      <div className="min-h-0 overflow-y-auto px-3 py-4 sm:px-6 sm:py-5">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          {/* Phones: the lesson list becomes a picker. */}
+          <div className="flex items-center gap-1 md:hidden">
+            <IconButton label="Önceki ders" disabled={index === 0} onClick={() => open(index - 1)}>
+              <ChevronLeft size={18} />
+            </IconButton>
+            <Select
+              value={index}
+              label="Ders"
+              onChange={open}
+              className="min-w-0 flex-1"
+              options={lessons.map((l, i) => ({value: i, label: `${i + 1}. ${l.title} ${'★'.repeat(bests[i]?.stars ?? 0)}`}))}
+            />
+            <IconButton label="Sonraki ders" disabled={index === lessons.length - 1} onClick={() => open(index + 1)}>
+              <ChevronRight size={18} />
+            </IconButton>
+          </div>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-faint">

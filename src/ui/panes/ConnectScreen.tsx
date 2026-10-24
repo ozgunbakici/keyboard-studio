@@ -1,5 +1,5 @@
-import {AlertTriangle, FileJson, Loader2, ShieldCheck, Sparkles, Usb} from 'lucide-react';
-import {connectDemo, connectWebHid, provideDefinitionFile, reloadSession} from '@/state/actions';
+import {AlertTriangle, FileJson, GraduationCap, Loader2, ShieldCheck, Sparkles, Usb} from 'lucide-react';
+import {connectDemo, connectWebHid, provideDefinitionFile, reloadSession, setPane} from '@/state/actions';
 import type {SessionInfo} from '@/state/store';
 import {useStudio} from '@/state/store';
 import {Button, FileButton, Kbd} from '@/ui/components/ui';
@@ -10,17 +10,35 @@ const udevReload = 'sudo udevadm control --reload-rules && sudo udevadm trigger'
 export const WelcomeScreen = () => {
   const webHid = useStudio((s) => s.webHidSupported);
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
+    <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
       <div className="flex flex-col gap-3">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
           <Sparkles size={13} /> VIA uyumlu · tarayıcıda çalışır
         </span>
-        <h2 className="text-3xl font-semibold tracking-tight">Klavyeni bağla, her şeyi buradan ayarla.</h2>
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Klavyeni bağla, her şeyi buradan ayarla.</h2>
         <p className="text-[15px] leading-relaxed text-muted">
           Tuş haritası, katmanlar, knob, ışıklar ve makrolar doğrudan klavyenin hafızasına yazılır. Ayarlar klavyede kalır; bilgisayarı
           değiştirsen de çalışır. Firmware’e dokunulmaz.
         </p>
       </div>
+
+      {!webHid && (
+        <div className="flex gap-3 rounded-xl border border-danger/40 bg-danger-soft p-4 text-sm">
+          <AlertTriangle size={18} className="shrink-0 text-danger" />
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold text-fg">Bu tarayıcı klavye ayarlarına bağlanamıyor.</p>
+            <p className="text-muted">
+              Klavye ayarı için gereken WebHID yalnızca bilgisayardaki Chrome, Edge ve diğer Chromium tabanlı tarayıcılarda var; Firefox, Safari ve
+              telefon tarayıcıları desteklemiyor. Yazı antrenmanı ve demo klavye burada da çalışır: telefona taktığın klavyeyle yazabilirsin.
+            </p>
+            <div>
+              <Button size="sm" icon={<GraduationCap size={14} />} onClick={() => setPane('typing')}>
+                Yazı antrenmanına git
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <button
@@ -44,15 +62,6 @@ export const WelcomeScreen = () => {
         </button>
       </div>
 
-      {!webHid && (
-        <div className="flex gap-3 rounded-xl border border-danger/40 bg-danger-soft p-4 text-sm">
-          <AlertTriangle size={18} className="shrink-0 text-danger" />
-          <div>
-            <p className="font-semibold text-fg">Bu tarayıcı klavyeye bağlanamıyor.</p>
-            <p className="mt-1 text-muted">WebHID yalnızca Chrome, Edge ve diğer Chromium tabanlı tarayıcılarda var. Firefox ve Safari desteklemiyor.</p>
-          </div>
-        </div>
-      )}
 
       <div className="grid gap-4 text-sm text-muted sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">

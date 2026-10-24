@@ -78,6 +78,8 @@ export type StudioState = {
   settings: Settings;
   toasts: Toast[];
   webHidSupported: boolean;
+  /** Phone layout: the sidebar is a drawer that slides over the content. */
+  navOpen: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -103,6 +105,7 @@ export const useStudio = create<StudioState>(() => ({
   settings: defaultSettings,
   toasts: [],
   webHidSupported: typeof navigator !== 'undefined' && 'hid' in navigator,
+  navOpen: false,
 }));
 
 export const getState = () => useStudio.getState();

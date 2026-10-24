@@ -54,12 +54,12 @@ export const ResultCard = ({
   }));
 
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6" aria-label="Sonuç">
+    <section className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-4 sm:p-6" aria-label="Sonuç">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-muted">{title}</span>
           <div className="flex items-baseline gap-2">
-            <span className="text-6xl font-semibold tracking-tight" data-testid="result-wpm">
+            <span className="text-5xl font-semibold tracking-tight sm:text-6xl" data-testid="result-wpm">
               {Math.round(result.wpm)}
             </span>
             <span className="text-lg text-muted">WPM</span>

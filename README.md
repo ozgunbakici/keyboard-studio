@@ -40,6 +40,8 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
 
 Chrome, Edge ya da başka bir Chromium tabanlı tarayıcı gerekir (WebHID; Firefox ve Safari desteklemiyor). Klavyeyi kabloyla bağla, usevia.app açıksa kapat.
 
+**Telefonda:** Arayüz telefona uyumludur. Klavye ayarı için gereken WebHID telefon tarayıcılarında olmadığından ayar kısmı bilgisayarda kullanılır; yazı antrenmanı (telefona USB ya da Bluetooth ile bağlı klavyeyle veya ekran klavyesiyle), demo klavye ve eylem kütüphanesi telefonda da çalışır. Veriler her cihazın tarayıcısında ayrı tutulur.
+
 Linux’ta tarayıcının hidraw cihazlarına erişebilmesi için:
 
 ```sh

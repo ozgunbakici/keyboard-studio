@@ -151,6 +151,8 @@ const openWebHidDevice = async (device: HIDDevice, select = false) => {
 };
 
 export const connectDemo = async () => {
+  // Close the phone menu before the definition is parsed, which keeps the main thread busy.
+  setState({navOpen: false});
   const existing = Object.values(getState().sessions).find((s) => s.kind === 'virtual');
   if (existing) {
     selectSession(existing.id);
@@ -376,6 +378,7 @@ export const closeSession = async (id: string, unplugged = false) => {
 };
 
 export const selectSession = (id: string) => {
+  setState({navOpen: false});
   if (getState().selectedId === id) return;
   setState({selectedId: id, layer: 0, selection: null});
   const controller = controllers.get(id);
@@ -392,7 +395,8 @@ export const blink = async (id: string) => {
   }
 };
 
-export const setPane = (pane: Pane) => setState({pane});
+export const setPane = (pane: Pane) => setState({pane, navOpen: false});
+export const setNavOpen = (navOpen: boolean) => setState({navOpen});
 export const setLayer = (layer: number) => setState({layer});
 export const setSelection = (selection: ReturnType<typeof getState>['selection']) => setState({selection});
 

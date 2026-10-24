@@ -1,5 +1,5 @@
-import {Lightbulb, RefreshCw, Unplug} from 'lucide-react';
-import {blink, closeSession, reloadSession} from '@/state/actions';
+import {Lightbulb, Menu, RefreshCw, Unplug} from 'lucide-react';
+import {blink, closeSession, reloadSession, setNavOpen} from '@/state/actions';
 import {useSelectedData, useSelectedSession, useStudio} from '@/state/store';
 import {Badge, IconButton} from '@/ui/components/ui';
 
@@ -24,12 +24,15 @@ export const TopBar = () => {
   const hex = (n: number) => n.toString(16).toUpperCase().padStart(4, '0');
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-5">
-      <h1 className="text-[15px] font-semibold">{paneTitles[pane]}</h1>
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-5">
+      <IconButton label="Menü" className="md:hidden" onClick={() => setNavOpen(true)}>
+        <Menu size={18} />
+      </IconButton>
+      <h1 className="truncate text-[15px] font-semibold">{paneTitles[pane]}</h1>
       {session && (
         <>
-          <span className="h-4 w-px bg-border" />
-          <span className="truncate text-sm text-muted">{data?.name ?? session.productName}</span>
+          <span className="hidden h-4 w-px bg-border sm:block" />
+          <span className="hidden truncate text-sm text-muted sm:block">{data?.name ?? session.productName}</span>
           <span className="hidden items-center gap-1.5 lg:flex">
             {session.protocol !== undefined && <Badge>VIA v{session.protocol}</Badge>}
             <Badge>

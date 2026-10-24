@@ -116,6 +116,11 @@ body,
   height: 100%;
 }
 
+/* Phones: follow the visible area as the address bar and on-screen keyboard come and go. */
+#root {
+  height: 100dvh;
+}
+
 body {
   margin: 0;
   background: var(--bg);

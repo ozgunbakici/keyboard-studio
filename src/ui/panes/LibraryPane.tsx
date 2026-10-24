@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
-import {BookMarked, ChevronDown, Copy, Download, FileDown, FileUp, Monitor, Plus, RefreshCw, Save, Search, Trash2, Wand2, X} from 'lucide-react';
+import {BookMarked, ChevronDown, ChevronLeft, Copy, Download, FileDown, FileUp, Monitor, Plus, RefreshCw, Save, Search, Trash2, Wand2, X} from 'lucide-react';
 import {listUserDefinitions, loadBundleIndex} from '@/definitions/repository';
 import {simulateMacro} from '@/macros/host-text';
 import {macroToSteps, stepsToMacro} from '@/macros/steps';
@@ -380,7 +380,7 @@ const KindPicker = ({value, onChange}: {value: ActionKind; onChange: (kind: Acti
   </div>
 );
 
-const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: LibraryAction; onClose: () => void}) => {
+const ActionEditor = ({draft, saved, onBack}: {draft: LibraryAction; saved?: LibraryAction; onBack: () => void}) => {
   const [saving, setSaving] = useState(false);
   const [tagText, setTagText] = useState(draft.tags.join(', '));
   const isNew = !saved;
@@ -419,7 +419,6 @@ const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: Li
     if (!ok) return;
     await deleteLibraryAction(draft.id);
     setDraft(null);
-    onClose();
   };
 
   useEffect(() => {
@@ -435,16 +434,22 @@ const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: Li
 
   return (
     <div className="flex min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3">
-        <input
-          value={draft.name}
-          onChange={(event) => update({...draft, name: event.target.value})}
-          aria-label="Eylem adı"
-          placeholder="Eylem adı"
-          autoFocus={isNew}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-base font-semibold outline-none hover:border-border focus:border-accent"
-        />
-        <div className="flex items-center gap-1.5">
+      <header className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-3 sm:px-5">
+        {/* Phones: the name gets its own row and the buttons wrap below it. */}
+        <div className="flex min-w-0 flex-1 basis-full items-center gap-1 sm:basis-0">
+          <IconButton label="Eylem listesine dön" className="md:hidden" onClick={onBack}>
+            <ChevronLeft size={18} />
+          </IconButton>
+          <input
+            value={draft.name}
+            onChange={(event) => update({...draft, name: event.target.value})}
+            aria-label="Eylem adı"
+            placeholder="Eylem adı"
+            autoFocus={isNew}
+            className="h-9 min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 text-base font-semibold outline-none hover:border-border focus:border-accent"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
           {!isNew && (
             <IconButton
               label="Kopyasını oluştur"
@@ -461,7 +466,7 @@ const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: Li
               <Trash2 size={15} />
             </IconButton>
           )}
-          <Button size="sm" variant="ghost" disabled={!dirty} onClick={() => (saved ? setDraft(structuredClone(saved)) : (setDraft(null), onClose()))}>
+          <Button size="sm" variant="ghost" disabled={!dirty} onClick={() => setDraft(saved ? structuredClone(saved) : null)}>
             {isNew ? 'Vazgeç' : 'Değişiklikleri at'}
           </Button>
           <Button size="sm" variant="primary" icon={<Save size={14} />} disabled={!dirty || saving} onClick={() => void save()}>
@@ -470,7 +475,7 @@ const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: Li
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5">
         <div className="flex max-w-4xl flex-col gap-5">
           <div className="flex flex-col gap-2">
             <span className="text-[13px] font-medium">Tür</span>
@@ -478,7 +483,7 @@ const ActionEditor = ({draft, saved, onClose}: {draft: LibraryAction; saved?: Li
           </div>
 
           <div className="flex flex-wrap items-end gap-4">
-            <label className="flex min-w-60 flex-1 flex-col gap-1.5">
+            <label className="flex min-w-0 flex-1 basis-60 flex-col gap-1.5">
               <span className="text-[13px] font-medium">Etiketler</span>
               <input
                 value={tagText}
@@ -540,8 +545,9 @@ const IntroCard = ({title, children}: {title: string; children: ReactNode}) => (
   </div>
 );
 
+// On phones the list takes the whole screen, so the introduction is desktop-only.
 const LibraryIntro = ({onTemplates, hasActions}: {onTemplates: () => void; hasActions: boolean}) => (
-  <div className="min-h-0 overflow-y-auto px-6 py-6">
+  <div className="hidden min-h-0 overflow-y-auto px-6 py-6 md:block">
     <div className="flex max-w-3xl flex-col gap-4">
       <div>
         <h2 className="text-lg font-semibold">Eylem kütüphanesi</h2>
@@ -911,8 +917,9 @@ export const LibraryPane = () => {
       {view === 'helpers' ? (
         <HelpersView />
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-[290px_minmax(0,1fr)]">
-          <div className="flex min-h-0 flex-col border-r border-border bg-surface">
+        <div className="grid min-h-0 flex-1 md:grid-cols-[290px_minmax(0,1fr)]">
+          {/* Phones show either the list or the open action. */}
+          <div className={cx('min-h-0 flex-col border-border bg-surface md:flex md:border-r', draft ? 'hidden' : 'flex')}>
             <div className="flex flex-col gap-2 border-b border-border p-3">
               <div className="flex flex-wrap gap-1.5">
                 <NewActionMenu onCreate={(kind) => void open(createAction(kind, defaultNames[kind]))} />
@@ -948,7 +955,7 @@ export const LibraryPane = () => {
             </div>
           </div>
           {draft ? (
-            <ActionEditor key={draft.id} draft={draft} saved={saved} onClose={() => undefined} />
+            <ActionEditor key={draft.id} draft={draft} saved={saved} onBack={() => void open(null)} />
           ) : (
             <LibraryIntro onTemplates={() => setTemplatesOpen(true)} hasActions={actions.length > 0} />
           )}

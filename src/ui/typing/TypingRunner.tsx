@@ -67,21 +67,44 @@ const useTypingRun = ({
 
   const type = (chars: string) => {
     const t = performance.now();
+    // Phones turn quotes into typographic ones; treat them as the plain characters.
+    const plain = chars.replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\u00a0/g, ' ');
     setState((s) => {
       if (timeLimit && s.startedAt !== null && t - s.startedAt >= timeLimit * 1000) return finishTyping(s, s.startedAt + timeLimit * 1000);
-      return [...chars].reduce((acc, ch) => typeChar(acc, ch, t), s);
+      return [...plain].reduce((acc, ch) => typeChar(acc, ch, t), s);
     });
+  };
+  const erase = () => setState((s) => backspace(s, performance.now()));
+
+  // Phone keyboards need a character to delete before their Backspace sends anything,
+  // so the hidden field always holds one space.
+  const settle = (element: HTMLTextAreaElement) => {
+    element.value = SENTINEL;
+    element.setSelectionRange(1, 1);
+  };
+
+  // Word-suggesting keyboards (Gboard) send the current word as a growing composition;
+  // follow it letter by letter. A desktop dead key composes one accented character instead.
+  const composition = useRef({text: '', dead: false});
+  const follow = (next: string) => {
+    const prev = composition.current.text;
+    let common = 0;
+    while (common < prev.length && common < next.length && prev[common] === next[common]) common++;
+    for (let i = prev.length; i > common; i--) erase();
+    if (next.length > common) type(next.slice(common));
+    composition.current.text = next;
   };
 
   const handlers = {
     onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === 'Dead') composition.current.dead = true;
       if (event.key === 'Escape') {
         event.preventDefault();
         if (onRestart) onRestart();
         else reset();
       } else if (event.key === 'Backspace') {
         event.preventDefault();
-        setState((s) => backspace(s, performance.now()));
+        erase();
       } else if (event.key === 'Enter') {
         event.preventDefault();
         type('\n');
@@ -92,23 +115,40 @@ const useTypingRun = ({
     onInput: (event: React.FormEvent<HTMLTextAreaElement>) => {
       const native = event.nativeEvent as InputEvent;
       const element = event.currentTarget;
-      // Dead keys (e.g. Option+u u on a Mac) arrive as one composed character at compositionend.
-      if (native.isComposing || native.inputType === 'insertCompositionText' || native.inputType === 'insertFromComposition') return;
-      const data = native.data ?? element.value;
-      element.value = '';
+      if (native.isComposing || native.inputType === 'insertCompositionText') {
+        if (!composition.current.dead) follow(native.data ?? '');
+        return;
+      }
+      // Safari repeats the composed text after compositionend.
+      if (native.inputType === 'insertFromComposition') return settle(element);
+      if (native.inputType === 'deleteContentBackward') {
+        erase();
+        return settle(element);
+      }
+      const data = native.inputType === 'insertLineBreak' ? '\n' : (native.data ?? element.value.slice(SENTINEL.length));
+      settle(element);
       if (data) type(data);
+    },
+    onCompositionStart: () => {
+      composition.current.text = '';
     },
     onCompositionEnd: (event: React.CompositionEvent<HTMLTextAreaElement>) => {
-      const data = event.data;
-      event.currentTarget.value = '';
-      if (data) type(data);
+      if (composition.current.dead) type(event.data);
+      else follow(event.data);
+      composition.current = {text: '', dead: false};
+      settle(event.currentTarget);
     },
-    onFocus: () => setFocused(true),
+    onFocus: (event: React.FocusEvent<HTMLTextAreaElement>) => {
+      settle(event.currentTarget);
+      setFocused(true);
+    },
     onBlur: () => setFocused(false),
   };
 
   return {state, now, focused, inputRef, handlers, reset};
 };
+
+const SENTINEL = ' ';
 
 const charClass: Record<CharState, string> = {
   pending: 'text-muted',
@@ -155,10 +195,12 @@ const TypingText = ({state, code, lines}: {state: TypingState; code: boolean; li
       ref={box}
       className={cx(
         'relative overflow-hidden break-words whitespace-pre-wrap',
-        code ? 'font-mono text-[1.05rem] leading-[1.9rem]' : 'text-[1.45rem] leading-[2.4rem] tracking-[0.01em]',
+        code
+          ? 'font-mono text-[0.9rem] leading-[1.65rem] sm:text-[1.05rem] sm:leading-[1.9rem]'
+          : 'text-[1.2rem] leading-[2.05rem] tracking-[0.01em] sm:text-[1.45rem] sm:leading-[2.4rem]',
         !lines && 'max-h-[42vh] overflow-y-auto',
       )}
-      style={lines ? {height: `calc(${lines} * ${code ? '1.9rem' : '2.4rem'})`} : undefined}
+      style={lines ? {height: `${lines}lh`} : undefined}
       aria-label="Yazılacak metin"
     >
       {[...state.target].map((ch, i) => (
@@ -181,12 +223,12 @@ const LiveStats = ({state, now, timeLimit}: {state: TypingState; now: number; ti
   const progress = state.target.length ? state.pos / state.target.length : 0;
   const item = (label: string, value: string, strong = false) => (
     <div className="flex items-baseline gap-1.5">
-      <span className={cx('text-2xl font-semibold tabular-nums', strong ? 'text-fg' : 'text-muted')}>{value}</span>
+      <span className={cx('text-xl font-semibold tabular-nums sm:text-2xl', strong ? 'text-fg' : 'text-muted')}>{value}</span>
       <span className="text-xs text-faint">{label}</span>
     </div>
   );
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
       {timeLimit
         ? item('kalan', formatTime(timeLimit * 1000 - elapsed, true), true)
         : item('süre', formatTime(elapsed))}
@@ -232,9 +274,11 @@ export const TypingRunner = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <LiveStats state={state} now={now} timeLimit={timeLimit} />
-        <div className="flex items-center gap-2 text-xs text-faint">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <LiveStats state={state} now={now} timeLimit={timeLimit} />
+        </div>
+        <div className="flex shrink-0 items-center gap-2 text-xs text-faint">
           {header}
           <IconButton label="Baştan başla (Esc)" onClick={() => (onRestart ? onRestart() : reset())}>
             <RotateCcw size={16} />
@@ -243,7 +287,7 @@ export const TypingRunner = ({
       </div>
 
       <div
-        className="relative cursor-text rounded-2xl border border-border bg-surface px-6 py-5"
+        className="relative cursor-text rounded-2xl border border-border bg-surface px-4 py-4 sm:px-6 sm:py-5"
         onMouseDown={(event) => {
           event.preventDefault();
           inputRef.current?.focus();
@@ -252,6 +296,7 @@ export const TypingRunner = ({
         <textarea
           ref={inputRef}
           {...handlers}
+          defaultValue={SENTINEL}
           autoFocus
           aria-label="Yazma alanı"
           autoCapitalize="off"

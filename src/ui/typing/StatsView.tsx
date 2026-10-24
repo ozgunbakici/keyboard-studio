@@ -111,7 +111,7 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
       : null;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+    <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-5">
       <div className="mx-auto flex max-w-5xl flex-col gap-5">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           <Tile label="Son 10 test ortalaması" value={s.recentWpm !== null ? `${Math.round(s.recentWpm)} WPM` : '–'} delta={delta} />
@@ -202,7 +202,8 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
             )}
           </div>
           {weak.length ? (
-            <table className="w-full text-left text-[13px]">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-[13px]">
               <thead className="text-[11px] text-faint uppercase">
                 <tr>
                   <th className="py-1.5 font-semibold">Karakter</th>
@@ -224,6 +225,7 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
                 ))}
               </tbody>
             </table>
+            </div>
           ) : (
             <p className="text-sm text-muted">Her tuş için en az 12 basış toplanınca burada listelenir.</p>
           )}
@@ -250,7 +252,8 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
               Geçmişi sil
             </Button>
           </div>
-          <table className="w-full text-left text-[13px]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-[13px]">
             <thead className="text-[11px] text-faint uppercase">
               <tr>
                 <th className="py-1.5 font-semibold">Tarih</th>
@@ -273,6 +276,7 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
                 ))}
             </tbody>
           </table>
+            </div>
         </section>
       </div>
     </div>
