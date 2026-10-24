@@ -165,3 +165,30 @@ export const focusText = (chars: string[], rng: Rng, count = 36) => {
   }
   return out.join(' ');
 };
+
+/**
+ * Splits a long text (e.g. a book chapter) into passages of about `size`
+ * characters, ending at sentence boundaries. Paragraph breaks stay as line
+ * breaks; a sentence longer than `size` becomes a passage of its own.
+ */
+export const splitPassages = (text: string, size = 320): string[] => {
+  const passages: string[] = [];
+  let current = '';
+  for (const paragraph of normalizeProse(text).split('\n')) {
+    const sentences = paragraph.match(/[^.!?…]+(?:[.!?…]+["'’”)\]]*|$)/g) ?? [paragraph];
+    for (const raw of sentences) {
+      const sentence = raw.trim();
+      if (!sentence) continue;
+      const joined = current ? `${current}${current.endsWith('\n') ? '' : ' '}${sentence}` : sentence;
+      if (current && joined.length > size) {
+        passages.push(current.trim());
+        current = sentence;
+      } else {
+        current = joined;
+      }
+    }
+    if (current) current += '\n';
+  }
+  if (current.trim()) passages.push(current.trim());
+  return passages;
+};

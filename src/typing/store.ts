@@ -28,12 +28,17 @@ export type PracticeSource =
   | 'en-words'
   | 'tr-sentences'
   | 'en-sentences'
+  | 'tr-books'
+  | 'en-books'
   | 'python'
   | 'java'
   | 'numbers'
   | 'symbols'
   | 'weak'
   | 'custom';
+
+/** A text the user pasted (e.g. a book chapter), practised passage by passage. */
+export type SavedText = {id: string; title: string; text: string; position: number};
 
 export type TypingSettings = {
   /** Keep ç ğ ı ö ş ü in Turkish texts; off folds them for a US layout. */
@@ -46,7 +51,10 @@ export type TypingSettings = {
   testLanguage: Language;
   testPunctuation: boolean;
   testNumbers: boolean;
+  /** Older single pasted text; moved into `customTexts` on load. */
   customText: string;
+  customTexts: SavedText[];
+  activeText: string | null;
   practiceSource: PracticeSource;
   /** Next lesson of the code courses. */
   course: {python: number; java: number};
@@ -62,6 +70,8 @@ export const defaultTypingSettings: TypingSettings = {
   testPunctuation: false,
   testNumbers: false,
   customText: '',
+  customTexts: [],
+  activeText: null,
   practiceSource: 'tr-words',
   course: {python: 0, java: 0},
 };
@@ -79,6 +89,11 @@ export const loadTyping = () => {
       getSetting<Partial<TypingSettings>>('typingSettings', {}),
     ]);
     const settings = {...defaultTypingSettings, ...stored, course: {...defaultTypingSettings.course, ...stored.course}};
+    if (settings.customText.trim() && !settings.customTexts.length) {
+      settings.customTexts = [{id: 'metin-1', title: 'Metnim', text: settings.customText, position: 0}];
+      settings.activeText = 'metin-1';
+      settings.customText = '';
+    }
     useTyping.setState({loaded: true, records, settings});
   })();
   return loading;

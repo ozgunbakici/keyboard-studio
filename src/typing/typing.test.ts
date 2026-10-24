@@ -2,7 +2,8 @@ import {describe, expect, it} from 'vitest';
 import {hostLayouts} from '@/keycodes/host-layouts';
 import {charKey, keysToPress, standardKeys, standardPosition} from './fingers';
 import {lessonCharset, lessonStars, lessonText, lessons} from './lessons';
-import {foldTurkish, focusText, normalizeCode, seededRng, testText} from './text';
+import {foldTurkish, focusText, normalizeCode, seededRng, splitPassages, testText} from './text';
+import {bookExcerpts} from './content/books';
 
 describe('typing text', () => {
   it('folds Turkish letters for a US layout', () => {
@@ -18,6 +19,24 @@ describe('typing text', () => {
     expect(a).toBe(testText('en', seededRng(7), {punctuation: true, count: 40}));
     expect(a.charAt(0)).toMatch(/[A-Z]/);
     expect(a.split(' ')).toHaveLength(40);
+  });
+
+  it('splits a long text into passages at sentence ends', () => {
+    const sentence = (i: number) => `Bu ${i}. cümle biraz uzun tutuldu ki bölümler oluşsun.`;
+    const text = `${[1, 2, 3, 4, 5].map(sentence).join(' ')}\n${[6, 7, 8].map(sentence).join(' ')}`;
+    const passages = splitPassages(text, 160);
+    expect(passages.length).toBeGreaterThan(2);
+    expect(passages.every((p) => p.length <= 160)).toBe(true);
+    expect(passages.every((p) => /[.!?]$/.test(p))).toBe(true);
+    // Nothing is lost or reordered.
+    expect(passages.join(' ').replace(/\s+/g, ' ')).toBe(text.replace(/\s+/g, ' '));
+  });
+
+  it('keeps book excerpts typeable on a US layout', () => {
+    for (const book of bookExcerpts) {
+      const typed = foldTurkish(book.text);
+      expect([...typed].filter((ch) => !/[\x20-\x7e\n]/.test(ch)), book.id).toEqual([]);
+    }
   });
 
   it('practises weak keys with words that contain them', () => {

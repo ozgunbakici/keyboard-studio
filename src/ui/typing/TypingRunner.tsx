@@ -272,6 +272,19 @@ export const TypingRunner = ({
   const {state, now, focused, inputRef, handlers, reset} = useTypingRun({text, options, timeLimit, onFinish, onRestart});
   const next = state.finishedAt === null ? state.target[state.pos] : undefined;
 
+  // After clicking a setting, typing should go straight back to the text: a printable
+  // key pressed outside any field moves focus here before its character arrives.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (focused || event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
+      if (target.closest('input, textarea, select, [contenteditable], dialog')) return;
+      inputRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [focused, inputRef]);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
