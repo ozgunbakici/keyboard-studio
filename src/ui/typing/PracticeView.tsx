@@ -152,7 +152,10 @@ export const PracticeView = () => {
 
   const texts = settings.customTexts;
   const active = texts.find((t) => t.id === settings.activeText) ?? texts[0];
-  const passages = useMemo(() => (active ? splitPassages(active.text) : []), [active]);
+  const long = settings.practiceLength === 'long';
+  // A long run takes about two and a half times as much text.
+  const n = (count: number) => (long ? Math.round(count * 2.5) : count);
+  const passages = useMemo(() => (active ? splitPassages(active.text, long ? 800 : 320) : []), [active, long]);
   const passageIndex = active ? Math.min(active.position, Math.max(0, passages.length - 1)) : 0;
   const fold = (text: string) => (settings.turkishChars ? text : foldTurkish(text));
 
@@ -166,22 +169,22 @@ export const PracticeView = () => {
     const tr = settings.turkishChars;
     switch (source) {
       case 'tr-words':
-        return {text: randomWords('tr', 40, rng, {top: 260, turkishChars: tr}).join(' '), code: false};
+        return {text: randomWords('tr', n(40), rng, {top: 260, turkishChars: tr}).join(' '), code: false};
       case 'en-words':
-        return {text: randomWords('en', 40, rng, {top: 260}).join(' '), code: false};
+        return {text: randomWords('en', n(40), rng, {top: 260}).join(' '), code: false};
       case 'tr-sentences':
-        return {text: sentencesText('tr', 4, rng, tr), code: false};
+        return {text: sentencesText('tr', n(4), rng, tr), code: false};
       case 'en-sentences':
-        return {text: sentencesText('en', 4, rng), code: false};
+        return {text: sentencesText('en', n(4), rng), code: false};
       case 'python':
       case 'java':
         return {text: normalizeCode(courseLesson!.code), code: true};
       case 'symbols':
-        return {text: symbolsText(28, rng), code: false};
+        return {text: symbolsText(n(28), rng), code: false};
       case 'numbers':
-        return {text: numbersText(30, rng), code: false};
+        return {text: numbersText(n(30), rng), code: false};
       case 'weak':
-        return weak.length ? {text: focusText(weak.map((k) => k.char), rng), code: false} : null;
+        return weak.length ? {text: focusText(weak.map((k) => k.char), rng, n(36)), code: false} : null;
       case 'tr-books':
       case 'en-books':
         return {text: fold(normalizeProse(excerpt!.text)), code: false};
@@ -190,7 +193,7 @@ export const PracticeView = () => {
     }
     // fold depends only on settings.turkishChars, listed below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source, seed, settings.turkishChars, courseLesson, weak, excerpt, passages, passageIndex]);
+  }, [source, seed, settings.turkishChars, long, courseLesson, weak, excerpt, passages, passageIndex]);
 
   const choose = (id: PracticeSource) => {
     void updateTypingSettings({practiceSource: id});
@@ -277,6 +280,23 @@ export const PracticeView = () => {
             <Toggle checked={settings.showKeyboard} onChange={(showKeyboard) => void updateTypingSettings({showKeyboard})} label="Klavyeyi göster" />
             Klavye
           </label>
+          {!course && !bookLang && (
+            <label className="flex items-center gap-2">
+              Uzunluk
+              <Select
+                value={settings.practiceLength}
+                label="Metin uzunluğu"
+                onChange={(practiceLength) => {
+                  void updateTypingSettings({practiceLength});
+                  setResult(null);
+                }}
+                options={[
+                  {value: 'normal', label: 'Normal (2 satır)'},
+                  {value: 'long', label: 'Uzun (4+ satır)'},
+                ]}
+              />
+            </label>
+          )}
           {!course && !bookLang && source !== 'custom' && (
             <Button size="sm" variant="ghost" icon={<Shuffle size={14} />} onClick={again}>
               Yeni metin

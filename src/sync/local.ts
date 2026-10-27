@@ -31,6 +31,7 @@ const typingPrefs = [
   'testPunctuation',
   'testNumbers',
   'practiceSource',
+  'practiceLength',
   'course',
   'activeText',
 ] as const;

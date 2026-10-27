@@ -56,6 +56,8 @@ export type TypingSettings = {
   customTexts: SavedText[];
   activeText: string | null;
   practiceSource: PracticeSource;
+  /** Practice text length: about two lines, or four and more. */
+  practiceLength: 'normal' | 'long';
   /** Next lesson of the code courses. */
   course: {python: number; java: number};
 };
@@ -73,6 +75,7 @@ export const defaultTypingSettings: TypingSettings = {
   customTexts: [],
   activeText: null,
   practiceSource: 'tr-words',
+  practiceLength: 'normal',
   course: {python: 0, java: 0},
 };
 
