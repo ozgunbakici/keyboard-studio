@@ -29,6 +29,7 @@ import {ViaApi} from '@/via/api';
 import {Command, Protocol, VIA_USAGE, VIA_USAGE_PAGE} from '@/via/constants';
 import {decodeMacros, encodeMacros, type Macro} from '@/via/macro-bytes';
 import {isViaInterface, ViaChannel, WebHidTransport, type HidTransport} from '@/via/transport';
+import {loadCustomBackground} from './appearance';
 import {createBackup, planRestore, type BackupFile, type ViaSaveFile} from './backup';
 import {
   defaultSettings,
@@ -101,6 +102,7 @@ export const initApp = async () => {
   setState({settings: {...defaultSettings, ...stored}});
   await refreshAutoSettings();
   void loadLibrary();
+  void loadCustomBackground();
 
   const hid = (navigator as Navigator & {hid?: HID}).hid;
   if (!hid) return;

@@ -58,6 +58,14 @@ export type Settings = {
   os: 'mac' | 'other';
   osAuto: boolean;
   theme: 'dark' | 'light' | 'system';
+  /** Behind the app: plain colour, the bundled photo, or a picture the user uploaded. */
+  background: 'plain' | 'sakura' | 'custom';
+  /** How much the picture is darkened (or lightened in the light theme), 0–0.85. */
+  backgroundDim: number;
+  /** Blur of the picture in pixels. */
+  backgroundBlur: number;
+  /** Colours of the drawn keyboards. */
+  keyTheme: 'default' | 'sakura';
   advanceSelection: boolean;
   blinkOnSelect: boolean;
   /** Rewrites library-bound keys for this computer's OS when a keyboard connects. */
@@ -88,6 +96,10 @@ export const defaultSettings: Settings = {
   os: 'other',
   osAuto: true,
   theme: 'dark',
+  background: 'plain',
+  backgroundDim: 0.55,
+  backgroundBlur: 0,
+  keyTheme: 'default',
   advanceSelection: true,
   blinkOnSelect: true,
   autoSync: true,

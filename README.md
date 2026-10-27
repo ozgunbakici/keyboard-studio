@@ -38,6 +38,11 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
 - **Hız testi:** 15 / 30 / 60 / 120 saniye, Türkçe veya İngilizce, isteğe bağlı noktalama ve rakam. Sonuçta saniye saniye hız grafiği.
 - **İstatistik:** Son testlerin ortalaması ve gidişatı, hız ve doğruluk grafikleri, bağlı klavyenin kendi dizilimi üzerinde hata ısı haritası, en çok zorlandığın tuşlar ve onlara özel alıştırma.
 
+### Görünüm
+
+- **Arka plan:** Ayarlar → Görünüm. Düz renk (varsayılan), hazır **Sakura klavye** fotoğrafı ya da kendi yüklediğin bir resim. Karartma ve bulanıklık ayarlanabilir; paneller buzlu cam gibi arkayı gösterir. Yüklenen resim yalnızca o tarayıcıda saklanır, hiçbir yere gönderilmez.
+- **Tuş renkleri:** Ekrandaki klavyeler için varsayılan renkler ya da fotoğraftaki klavyenin **Sakura** renkleri: krem harf tuşları ve yeşil yazı, yeşil değiştiriciler, kırmızı vurgu tuşları (genelde Esc ve Enter), kahverengi kasa. Sakura arka planı seçilince tuşlar da Sakura olur; ikisi ayrı ayrı da değiştirilebilir.
+
 ## Kullanım
 
 Chrome, Edge ya da başka bir Chromium tabanlı tarayıcı gerekir (WebHID; Firefox ve Safari desteklemiyor). Klavyeyi kabloyla bağla, usevia.app açıksa kapat.

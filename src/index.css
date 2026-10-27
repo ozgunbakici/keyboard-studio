@@ -32,13 +32,13 @@
   --success: #4ade80;
   --danger: #f87171;
   --danger-soft: rgb(248 113 113 / 0.14);
-  --key-alpha: #2a3042;
-  --key-mod: #20253a;
-  --key-accent: #3b3150;
-  --key-edge: #11141c;
-  --key-fg: #e9ecf5;
-  --key-top: rgb(255 255 255 / 0.06);
-  --plate: #0f1219;
+  --k-alpha: #2a3042;
+  --k-mod: #20253a;
+  --k-accent: #3b3150;
+  --k-edge: #11141c;
+  --k-fg: #e9ecf5;
+  --k-top: rgb(255 255 255 / 0.06);
+  --k-plate: #0f1219;
   color-scheme: dark;
 }
 
@@ -69,13 +69,13 @@
   --success: #15803d;
   --danger: #dc2626;
   --danger-soft: rgb(220 38 38 / 0.1);
-  --key-alpha: #ffffff;
-  --key-mod: #e8ebf3;
-  --key-accent: #ece3fb;
-  --key-edge: #c3c9d6;
-  --key-fg: #1b1f2a;
-  --key-top: rgb(255 255 255 / 0.7);
-  --plate: #d9dde7;
+  --k-alpha: #ffffff;
+  --k-mod: #e8ebf3;
+  --k-accent: #ece3fb;
+  --k-edge: #c3c9d6;
+  --k-fg: #1b1f2a;
+  --k-top: rgb(255 255 255 / 0.7);
+  --k-plate: #d9dde7;
   color-scheme: light;
 }
 
@@ -101,6 +101,7 @@
   --color-mod-soft: var(--mod-soft);
   --color-action: var(--action);
   --color-action-soft: var(--action-soft);
+  --color-chrome: var(--chrome);
   --color-chart-1: var(--chart-1);
   --color-chart-critical: var(--chart-critical);
   --color-success: var(--success);
@@ -207,4 +208,87 @@ input[type='range'] {
   .typing-caret::before {
     animation: none;
   }
+}
+
+:root {
+  --chrome: transparent;
+  --main-tint: transparent;
+  --backdrop-tint: #0c0e13;
+}
+
+/* Keycap colours. The theme's own palette (--k-*) unless a key theme replaces it;
+   a nested [data-keys] (e.g. a preview swatch) can pick its own. */
+:root,
+[data-keys='default'] {
+  --key-alpha: var(--k-alpha);
+  --key-mod: var(--k-mod);
+  --key-accent: var(--k-accent);
+  --key-edge: var(--k-edge);
+  --key-fg: var(--k-fg);
+  --key-top: var(--k-top);
+  --plate: var(--k-plate);
+  /* Legends take the ink of their keycap; by default every keycap shares one ink. */
+  --key-alpha-fg: var(--k-fg);
+  --key-mod-fg: var(--k-fg);
+  --key-accent-fg: var(--k-fg);
+}
+
+/* Sakura keycaps: cream alphas with green legends, green modifiers, red accents, brown case. */
+[data-keys='sakura'] {
+  --key-fg: #2e7140;
+  --key-alpha: #f2eee4;
+  --key-alpha-fg: #2e7140;
+  --key-mod: #3f7d55;
+  --key-mod-fg: #f3efe4;
+  --key-accent: #a3373b;
+  --key-accent-fg: #f8f1e8;
+  --key-edge: #2a211b;
+  --key-top: rgb(255 255 255 / 0.45);
+  --plate: #57443a;
+}
+
+/* A picture behind the app: surfaces turn to frosted glass so it shows through. */
+[data-bg='image'] {
+  --chrome: rgb(12 14 19 / 0.55);
+  /* Text placed straight on the content area needs a little more contrast than panels. */
+  --main-tint: rgb(12 14 19 / 0.3);
+  --muted: #a3abbf;
+  --faint: #7f879b;
+  --surface: rgb(19 22 32 / 0.8);
+  --surface-2: rgb(26 30 43 / 0.82);
+  --surface-3: rgb(35 40 56 / 0.88);
+}
+[data-bg='image'][data-theme='light'] {
+  --chrome: rgb(255 255 255 / 0.6);
+  --main-tint: rgb(244 245 249 / 0.4);
+  --muted: #4b546a;
+  --faint: #6b7489;
+  --surface: rgb(255 255 255 / 0.82);
+  --surface-2: rgb(240 242 247 / 0.85);
+  --surface-3: rgb(229 232 240 / 0.9);
+  --backdrop-tint: #f4f5f9;
+}
+[data-bg='image'] .bg-surface,
+[data-bg='image'] .bg-chrome {
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+@media (max-width: 900px) {
+  /* A phone shows the middle of the photo, the bright keycaps, behind the text. */
+  [data-bg='image'] {
+    --main-tint: rgb(12 14 19 / 0.45);
+  }
+  [data-bg='image'][data-theme='light'] {
+    --main-tint: rgb(244 245 249 / 0.55);
+  }
+}
+/* Text sitting right on the picture gets a soft halo. Anything with its own fill
+   (a class starting with bg-, form fields, keyboard drawings) keeps crisp text. */
+[data-bg='image'] main {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.85);
+}
+[data-bg='image'][data-theme='light'] main {
+  text-shadow: 0 0 4px rgb(255 255 255 / 0.95);
+}
+[data-bg='image'] main :is([class^='bg-'], [class*=' bg-'], input, textarea, select, svg) {
+  text-shadow: none;
 }

@@ -100,7 +100,7 @@ export const standardKeys: StandardKey[] = (() => {
     });
   });
   // ISO Enter: 1.5 wide on the top row, 1.25 wide on the home row.
-  keys.push(makeKey('KC_ENT', 13.75, 1, 1.25, 13, {h: 2, x2: -0.25, y2: 0, w2: 1.5, h2: 1}));
+  keys.push(makeKey('KC_ENT', 13.75, 1, 1.25, 13, {h: 2, x2: -0.25, y2: 0, w2: 1.5, h2: 1, color: 'accent' as RenderKey['color']}));
   return keys;
 })();
 

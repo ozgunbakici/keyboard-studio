@@ -264,25 +264,25 @@ export const KeycodePicker = ({
             <Sparkles size={14} /> Gelişmiş
           </button>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
           <button
             type="button"
             onClick={() => setCapturing((c) => !c)}
             className={cx(
-              'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium',
+              'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium whitespace-nowrap',
               capturing ? 'animate-pulse border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-fg',
             )}
             title="Klavyende bir tuşa (veya kısayola) bas, o tuş atanır"
           >
             <Keyboard size={15} /> {capturing ? 'Bir tuşa bas… (Esc: iptal)' : 'Tuşa basarak seç'}
           </button>
-          <label className="relative">
+          <label className="relative min-w-0 flex-1 sm:flex-none">
             <Search size={14} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-faint" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Tuş ara (ör. ses, katman, ş)"
-              className="h-8 w-56 rounded-lg border border-border bg-surface-2 pr-7 pl-8 text-[13px] outline-none placeholder:text-faint focus:border-accent"
+              className="h-8 w-full rounded-lg border border-border bg-surface-2 pr-7 pl-8 text-[13px] outline-none placeholder:text-faint focus:border-accent sm:w-56"
             />
             {query && (
               <button type="button" onClick={() => setQuery('')} className="absolute top-1/2 right-2 -translate-y-1/2 text-faint hover:text-fg" aria-label="Aramayı temizle">

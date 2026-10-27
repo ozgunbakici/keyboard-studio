@@ -21,6 +21,10 @@ type Props = {
   ariaLabel?: string;
 };
 
+// Legends take the ink of the keycap they sit on (e.g. green on cream, cream on green).
+const legendColor = (key: RenderKey) =>
+  key.color === 'mod' ? 'var(--key-mod-fg)' : key.color === 'accent' ? 'var(--key-accent-fg)' : 'var(--key-alpha-fg)';
+
 const keyColor = (key: RenderKey) =>
   key.color === 'mod' ? 'var(--key-mod)' : key.color === 'accent' ? 'var(--key-accent)' : 'var(--key-alpha)';
 
@@ -39,7 +43,7 @@ const fitSize = (text: string, width: number, base: number) => {
   return Math.min(base, (width - 0.22) / (length * 0.56));
 };
 
-const Legend = ({label, x, y, w, h, dim}: {label: KeyLabel; x: number; y: number; w: number; h: number; dim?: boolean}) => {
+const Legend = ({label, x, y, w, h, dim, ink}: {label: KeyLabel; x: number; y: number; w: number; h: number; dim?: boolean; ink: string}) => {
   const cxp = x + w / 2;
   const lines = label.main.split('\n');
   const mainSize = fitSize(lines.reduce((a, b) => (b.length > a.length ? b : a), ''), w, 0.26);
@@ -50,7 +54,7 @@ const Legend = ({label, x, y, w, h, dim}: {label: KeyLabel; x: number; y: number
   return (
     <g pointerEvents="none" opacity={dim ? 0.38 : 1}>
       {hasTop && (
-        <text x={cxp} y={y + 0.33} textAnchor="middle" fontSize={fitSize(label.top!, w, 0.17)} fill="var(--muted)">
+        <text x={cxp} y={y + 0.33} textAnchor="middle" fontSize={fitSize(label.top!, w, 0.17)} fill={ink} fillOpacity={0.62}>
           {label.top}
         </text>
       )}
@@ -63,7 +67,7 @@ const Legend = ({label, x, y, w, h, dim}: {label: KeyLabel; x: number; y: number
           dominantBaseline="central"
           fontSize={mainSize}
           fontWeight={label.tone === 'normal' && [...line].length === 1 ? 600 : 500}
-          fill={label.tone === 'transparent' || label.tone === 'empty' ? 'var(--faint)' : 'var(--key-fg)'}
+          fill={label.tone === 'transparent' || label.tone === 'empty' ? 'var(--faint)' : ink}
         >
           {line}
         </text>
@@ -102,7 +106,7 @@ const KeyCap = memo(function KeyCap({
   const transform = k.r ? `rotate(${k.r} ${k.rx} ${k.ry})` : undefined;
   const isSelected = selected?.keyId === k.id;
   const tone = label ? toneColor[label.tone] : undefined;
-  const base = pressed ? 'var(--accent)' : tested ? 'var(--layer-soft)' : (tint ?? keyColor(k));
+  const base = pressed ? 'var(--accent)' : tested ? 'var(--layer-soft)' : keyColor(k);
   const heatFill = heat !== undefined ? `rgb(208 59 59 / ${Math.min(0.9, heat * 0.9).toFixed(3)})` : undefined;
 
   if (k.isEncoder) {
@@ -204,7 +208,8 @@ const KeyCap = memo(function KeyCap({
         strokeWidth: isSelected ? 0.06 : tone ? 0.035 : 0.02,
       })}
       {heatFill && !pressed && shape(inner, {fill: heatFill, pointerEvents: 'none'})}
-      {label && <Legend label={label} {...legendBox} dim={!k.hasMatrix} />}
+      {tint && !pressed && !heatFill && shape(inner, {fill: tint, pointerEvents: 'none'})}
+      {label && <Legend label={label} {...legendBox} dim={!k.hasMatrix} ink={pressed ? 'var(--accent-fg)' : legendColor(k)} />}
     </g>
   );
 });

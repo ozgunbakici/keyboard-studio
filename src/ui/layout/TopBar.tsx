@@ -24,7 +24,7 @@ export const TopBar = () => {
   const hex = (n: number) => n.toString(16).toUpperCase().padStart(4, '0');
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-5">
+    <header className="bg-chrome flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-5">
       <IconButton label="Menü" className="md:hidden" onClick={() => setNavOpen(true)}>
         <Menu size={18} />
       </IconButton>

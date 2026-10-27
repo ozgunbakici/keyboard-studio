@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {useSelectedSession, useStudio} from '@/state/store';
 import {ConfirmHost} from '@/ui/components/Dialog';
+import {Backdrop} from '@/ui/layout/Backdrop';
 import {Sidebar} from '@/ui/layout/Sidebar';
 import {Toasts} from '@/ui/layout/Toasts';
 import {TopBar} from '@/ui/layout/TopBar';
@@ -54,8 +55,9 @@ export const App = () => {
   useTheme();
   return (
     <div className="flex h-full min-h-0">
+      <Backdrop />
       <Sidebar />
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col" style={{background: 'var(--main-tint)'}}>
         <TopBar />
         <div className="min-h-0 flex-1 overflow-auto">
           <Content />
