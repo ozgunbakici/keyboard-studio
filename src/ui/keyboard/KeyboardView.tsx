@@ -232,7 +232,7 @@ export const KeyboardView = ({keys, labelFor, encoderLabelsFor, selection = null
         height={bounds.height + PAD * 2 - 0.1}
         rx={0.3}
         fill="var(--plate)"
-        stroke="var(--border)"
+        stroke="var(--plate-edge)"
         strokeWidth={0.03}
       />
       {keys.map((key) => (

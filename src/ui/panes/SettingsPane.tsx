@@ -1,6 +1,6 @@
 import {useRef, useState, type ReactNode} from 'react';
 import {ImagePlus, Trash2, Wand2} from 'lucide-react';
-import sakuraThumb from '@/assets/backgrounds/sakura-thumb.webp';
+import {photoIds, photos} from '@/assets/backgrounds';
 import {detectHostLayout, hostLayoutList, hostLayouts} from '@/keycodes/host-layouts';
 import {removeCustomBackground, setCustomBackground, useAppearance} from '@/state/appearance';
 import {updateSettings} from '@/state/actions';
@@ -63,18 +63,21 @@ const BackgroundSettings = ({settings}: {settings: Settings}) => {
           Uygulamanın arkasında düz renk, hazır fotoğraf ya da kendi yüklediğin bir resim. Yüklediğin resim yalnızca bu tarayıcıda kalır.
         </div>
       </div>
-      <div className="flex flex-wrap gap-3">
+      <div role="group" aria-label="Arka plan" className="flex flex-wrap gap-3">
         <Choice label="Düz" active={settings.background === 'plain'} onClick={() => void updateSettings({background: 'plain'})}>
           <span className="absolute inset-0" style={{background: 'var(--bg)'}} />
         </Choice>
-        <Choice
-          label="Sakura klavye"
-          active={settings.background === 'sakura'}
-          // The photo comes with its keycap colours unless another key theme was chosen.
-          onClick={() => void updateSettings({background: 'sakura', ...(settings.keyTheme === 'default' ? {keyTheme: 'sakura' as const} : {})})}
-        >
-          <img src={sakuraThumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        </Choice>
+        {photoIds.map((id) => (
+          <Choice
+            key={id}
+            label={photos[id].label}
+            active={settings.background === id}
+            // A photo brings its keycap colours and darkening; both can be changed again.
+            onClick={() => void updateSettings({background: id, keyTheme: id, backgroundDim: photos[id].dim})}
+          >
+            <img src={photos[id].thumb} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          </Choice>
+        ))}
         <Choice
           label="Kendi resmim"
           active={settings.background === 'custom'}
@@ -236,13 +239,14 @@ export const SettingsPane = () => {
         <div className="flex flex-col gap-3 py-4">
           <div>
             <div className="text-sm font-medium">Tuş renkleri</div>
-            <div className="mt-0.5 max-w-xl text-sm text-muted">Ekrandaki klavye çizimlerinin renkleri. Sakura, arka plandaki klavyenin krem, yeşil ve kırmızı tuşlarıdır.</div>
+            <div className="mt-0.5 max-w-xl text-sm text-muted">Ekrandaki klavye çizimlerinin renkleri. Bir fotoğraf seçince ona uygun renkler gelir; buradan yine değiştirebilirsin.</div>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div role="group" aria-label="Tuş renkleri" className="flex flex-wrap gap-3">
             {(
               [
                 ['default', 'Varsayılan'],
                 ['sakura', 'Sakura'],
+                ['mordor', 'Mordor'],
               ] as const
             ).map(([theme, label]) => (
               <Choice key={theme} label={label} active={settings.keyTheme === theme} onClick={() => void updateSettings({keyTheme: theme})}>

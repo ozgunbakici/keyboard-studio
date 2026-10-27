@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
-import sakuraLarge from '@/assets/backgrounds/sakura.webp';
-import sakuraSmall from '@/assets/backgrounds/sakura-small.webp';
+import {photos} from '@/assets/backgrounds';
 import {useAppearance} from '@/state/appearance';
 import {useStudio} from '@/state/store';
 
@@ -28,7 +27,8 @@ export const Backdrop = () => {
   const keyTheme = useStudio((s) => s.settings.keyTheme);
   const customUrl = useAppearance((s) => s.customUrl);
   const small = useSmallScreen();
-  const url = background === 'sakura' ? (small ? sakuraSmall : sakuraLarge) : background === 'custom' ? customUrl : null;
+  const photo = background === 'plain' || background === 'custom' ? null : photos[background];
+  const url = photo ? (small ? photo.small : photo.large) : background === 'custom' ? customUrl : null;
 
   useEffect(() => {
     document.documentElement.dataset.bg = url ? 'image' : 'plain';
@@ -43,7 +43,11 @@ export const Backdrop = () => {
       {/* Oversized so a blurred edge never shows. */}
       <div
         className="absolute -inset-6 bg-cover bg-center"
-        style={{backgroundImage: `url("${url}")`, filter: blur ? `blur(${blur}px)` : undefined}}
+        style={{
+          backgroundImage: `url("${url}")`,
+          backgroundPosition: photo && small ? photo.smallPosition : undefined,
+          filter: blur ? `blur(${blur}px)` : undefined,
+        }}
       />
       <div className="absolute inset-0" style={{background: 'var(--backdrop-tint)', opacity: dim}} />
     </div>

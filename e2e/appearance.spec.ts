@@ -12,25 +12,32 @@ const openSettings = async (page: Page) => {
   await page.getByRole('button', {name: 'Ayarlar', exact: true}).click();
 };
 
-test('the plain background stays the default; the Sakura photo brings its keycap colours', async ({page}) => {
+test('the plain background stays the default; each photo brings its keycap colours', async ({page}) => {
   await openSettings(page);
   await expect(html(page)).toHaveAttribute('data-bg', 'plain');
   await expect(html(page)).toHaveAttribute('data-keys', 'default');
   await expect(page.getByRole('button', {name: 'Düz', exact: true})).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('backdrop')).toHaveCount(0);
 
-  await page.getByRole('button', {name: 'Sakura klavye'}).click();
+  const backgrounds = page.getByRole('group', {name: 'Arka plan'});
+  await backgrounds.getByRole('button', {name: 'Sakura klavye'}).click();
   await expect(html(page)).toHaveAttribute('data-bg', 'image');
   await expect(html(page)).toHaveAttribute('data-keys', 'sakura');
   await expect(picture(page)).toHaveAttribute('style', /sakura/);
   expect(await cssVar(page, '--key-alpha')).toBe('#f2eee4');
-  await expect(page.getByRole('slider', {name: 'Karartma'})).toBeVisible();
+
+  await backgrounds.getByRole('button', {name: 'Mordor'}).click();
+  await expect(html(page)).toHaveAttribute('data-keys', 'mordor');
+  await expect(picture(page)).toHaveAttribute('style', /mordor/);
+  expect(await cssVar(page, '--key-mod')).toBe('#8e2a14');
+  // A dark photo is darkened less.
+  await expect(page.getByRole('slider', {name: 'Karartma'})).toHaveValue('30');
 
   // Kept after a reload, and the key colours can be changed on their own.
   await page.reload();
-  await expect(html(page)).toHaveAttribute('data-bg', 'image');
+  await expect(html(page)).toHaveAttribute('data-keys', 'mordor');
   await page.getByRole('button', {name: 'Ayarlar', exact: true}).click();
-  await page.getByRole('button', {name: 'Varsayılan', exact: true}).click();
+  await page.getByRole('group', {name: 'Tuş renkleri'}).getByRole('button', {name: 'Varsayılan'}).click();
   await expect(html(page)).toHaveAttribute('data-keys', 'default');
   await expect(html(page)).toHaveAttribute('data-bg', 'image');
 

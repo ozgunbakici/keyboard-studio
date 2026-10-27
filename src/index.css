@@ -227,6 +227,7 @@ input[type='range'] {
   --key-fg: var(--k-fg);
   --key-top: var(--k-top);
   --plate: var(--k-plate);
+  --plate-edge: var(--border);
   /* Legends take the ink of their keycap; by default every keycap shares one ink. */
   --key-alpha-fg: var(--k-fg);
   --key-mod-fg: var(--k-fg);
@@ -245,6 +246,22 @@ input[type='range'] {
   --key-edge: #2a211b;
   --key-top: rgb(255 255 255 / 0.45);
   --plate: #57443a;
+}
+
+/* Mordor keycaps (Mount Doom): basalt alphas with lava-yellow legends, deep red
+   modifiers, molten orange accents, a case edged in glowing lava. */
+[data-keys='mordor'] {
+  --key-fg: #ffc35a;
+  --key-alpha: #2b2321;
+  --key-alpha-fg: #ffc35a;
+  --key-mod: #8e2a14;
+  --key-mod-fg: #ffd9a8;
+  --key-accent: #f7a833;
+  --key-accent-fg: #2a1208;
+  --key-edge: #0e0a09;
+  --key-top: rgb(255 195 90 / 0.2);
+  --plate: #140f0d;
+  --plate-edge: rgb(247 168 51 / 0.45);
 }
 
 /* A picture behind the app: surfaces turn to frosted glass so it shows through. */

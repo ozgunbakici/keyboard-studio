@@ -40,8 +40,8 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
 
 ### Görünüm
 
-- **Arka plan:** Ayarlar → Görünüm. Düz renk (varsayılan), hazır **Sakura klavye** fotoğrafı ya da kendi yüklediğin bir resim. Karartma ve bulanıklık ayarlanabilir; paneller buzlu cam gibi arkayı gösterir. Yüklenen resim yalnızca o tarayıcıda saklanır, hiçbir yere gönderilmez.
-- **Tuş renkleri:** Ekrandaki klavyeler için varsayılan renkler ya da fotoğraftaki klavyenin **Sakura** renkleri: krem harf tuşları ve yeşil yazı, yeşil değiştiriciler, kırmızı vurgu tuşları (genelde Esc ve Enter), kahverengi kasa. Sakura arka planı seçilince tuşlar da Sakura olur; ikisi ayrı ayrı da değiştirilebilir.
+- **Arka plan:** Ayarlar → Görünüm. Düz renk (varsayılan), hazır **Sakura klavye** ve **Mordor** fotoğrafları ya da kendi yüklediğin bir resim. Fotoğraf seçilince ona uygun tuş renkleri ve karartma gelir. Karartma ve bulanıklık ayarlanabilir; paneller buzlu cam gibi arkayı gösterir. Yüklenen resim yalnızca o tarayıcıda saklanır, hiçbir yere gönderilmez.
+- **Tuş renkleri:** Ekrandaki klavyeler için varsayılan renkler, **Sakura** (krem harf tuşları ve yeşil yazı, yeşil değiştiriciler, kırmızı vurgu tuşları, kahverengi kasa) ya da **Mordor** (koyu bazalt harf tuşları ve lav sarısı yazı, kızıl değiştiriciler, erimiş turuncu vurgu tuşları, lav çizgili kasa). Vurgu tuşları genelde Esc ve Enter’dır. Arka plan ve tuş renkleri ayrı ayrı da seçilebilir.
 
 ## Kullanım
 

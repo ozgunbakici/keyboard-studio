@@ -52,20 +52,23 @@ export type KeySelection = {keyId: string; part: 'key' | 'ccw' | 'cw'} | null;
 
 export type Toast = {id: number; kind: 'info' | 'success' | 'error'; text: string};
 
+/** Photos that come with the app (see assets/backgrounds). */
+export type PhotoId = 'sakura' | 'mordor';
+
 export type Settings = {
   hostLayout: HostLayoutId;
   hostLayoutAuto: boolean;
   os: 'mac' | 'other';
   osAuto: boolean;
   theme: 'dark' | 'light' | 'system';
-  /** Behind the app: plain colour, the bundled photo, or a picture the user uploaded. */
-  background: 'plain' | 'sakura' | 'custom';
+  /** Behind the app: plain colour, a photo that comes with the app, or a picture the user uploaded. */
+  background: 'plain' | PhotoId | 'custom';
   /** How much the picture is darkened (or lightened in the light theme), 0–0.85. */
   backgroundDim: number;
   /** Blur of the picture in pixels. */
   backgroundBlur: number;
-  /** Colours of the drawn keyboards. */
-  keyTheme: 'default' | 'sakura';
+  /** Colours of the drawn keyboards; each photo has a set made for it. */
+  keyTheme: 'default' | PhotoId;
   advanceSelection: boolean;
   blinkOnSelect: boolean;
   /** Rewrites library-bound keys for this computer's OS when a keyboard connects. */
