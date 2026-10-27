@@ -1,9 +1,49 @@
-import {Archive, BookMarked, FileJson, FlaskConical, GraduationCap, Keyboard, Lightbulb, Plus, Settings, Sparkles, Usb, Zap} from 'lucide-react';
+import {
+  Archive,
+  BookMarked,
+  Cloud,
+  CloudAlert,
+  FileJson,
+  FlaskConical,
+  GraduationCap,
+  Keyboard,
+  Lightbulb,
+  Plus,
+  Settings,
+  Sparkles,
+  Usb,
+  Zap,
+} from 'lucide-react';
 import {useMemo, type ReactNode} from 'react';
 import {hostLayouts} from '@/keycodes/host-layouts';
 import {connectDemo, connectWebHid, selectSession, setNavOpen, setPane} from '@/state/actions';
 import {useStudio, type Pane, type SessionInfo} from '@/state/store';
+import {useCloud} from '@/sync/engine';
 import {cx} from '@/ui/components/ui';
+import {timeAgo, useMinuteTick} from '@/ui/panes/CloudSyncSection';
+
+/** Sync state at a glance; opens the settings. */
+const CloudBadge = () => {
+  const {repo, phase, lastSync, error} = useCloud();
+  useMinuteTick();
+  if (!repo) return null;
+  const text = phase === 'syncing' ? 'Eşitleniyor…' : phase === 'error' ? 'Eşitleme hatası' : lastSync ? `Eşitlendi · ${timeAgo(lastSync)}` : 'Eşitlenmedi';
+  return (
+    <button
+      type="button"
+      onClick={() => setPane('settings')}
+      title={phase === 'error' && error ? error : `GitHub: ${repo}`}
+      className="flex w-full items-center gap-2 border-t border-border px-4 py-2 text-left text-[12px] text-faint transition-colors hover:text-fg"
+    >
+      {phase === 'error' ? (
+        <CloudAlert size={14} className="shrink-0 text-danger" />
+      ) : (
+        <Cloud size={14} className={cx('shrink-0', phase === 'syncing' ? 'animate-pulse text-accent' : 'text-success')} />
+      )}
+      <span className="truncate">{text}</span>
+    </button>
+  );
+};
 
 const statusDot: Record<SessionInfo['status'], string> = {
   connecting: 'bg-macro animate-pulse',
@@ -132,17 +172,20 @@ export const Sidebar = () => {
           })}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setPane('settings')}
-          className="mt-auto flex items-center justify-between gap-2 border-t border-border px-4 py-3 text-left text-[12px] text-faint transition-colors hover:text-fg"
-          title="Bilgisayardaki klavye düzeni ve işletim sistemi"
-        >
-          <span>
-            Düzen: <span className="font-semibold text-muted">{hostLayouts[settings.hostLayout].short}</span>
-          </span>
-          <span>{settings.os === 'mac' ? 'macOS' : 'Windows / Linux'}</span>
-        </button>
+        <div className="mt-auto">
+          <CloudBadge />
+          <button
+            type="button"
+            onClick={() => setPane('settings')}
+            className="flex w-full items-center justify-between gap-2 border-t border-border px-4 py-3 text-left text-[12px] text-faint transition-colors hover:text-fg"
+            title="Bilgisayardaki klavye düzeni ve işletim sistemi"
+          >
+            <span>
+              Düzen: <span className="font-semibold text-muted">{hostLayouts[settings.hostLayout].short}</span>
+            </span>
+            <span>{settings.os === 'mac' ? 'macOS' : 'Windows / Linux'}</span>
+          </button>
+        </div>
       </aside>
     </>
   );

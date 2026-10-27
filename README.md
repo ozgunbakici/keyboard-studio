@@ -43,6 +43,16 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
 - **Arka plan:** Ayarlar → Görünüm. Düz renk (varsayılan), hazır **Sakura klavye** ve **Mordor** fotoğrafları ya da kendi yüklediğin bir resim. Fotoğraf seçilince ona uygun tuş renkleri ve karartma gelir. Karartma ve bulanıklık ayarlanabilir; paneller buzlu cam gibi arkayı gösterir. Yüklenen resim yalnızca o tarayıcıda saklanır, hiçbir yere gönderilmez.
 - **Tuş renkleri:** Ekrandaki klavyeler için varsayılan renkler, **Sakura** (krem harf tuşları ve yeşil yazı, yeşil değiştiriciler, kırmızı vurgu tuşları, kahverengi kasa) ya da **Mordor** (koyu bazalt harf tuşları ve lav sarısı yazı, kızıl değiştiriciler, erimiş turuncu vurgu tuşları, lav çizgili kasa). Vurgu tuşları genelde Esc ve Enter’dır. Arka plan ve tuş renkleri ayrı ayrı da seçilebilir.
 
+### Cihazlar arası eşitleme (Faz 4)
+
+- **Ne eşitlenir:** Eylemler ve tuş atamaları, yazı antrenmanı (geçmiş, metinler, ayarlar), görünüm ve çalışma ayarları, yüklenen klavye tanımları ve klavye yedekleri. Bilgisayarın klavye düzeni ve işletim sistemi her cihazda kendi kalır; yüklenen arka plan resmi eşitlenmez.
+- **Nerede durur:** Senin GitHub hesabındaki **gizli** bir depoda (ör. `klavye-studio-veri`). Uygulama herkese açık bir depoya yazmayı reddeder. Her eşitleme o depoda bir commit olur; eski hâllere dönülebilir.
+- **Kurulum (bir kez):** Ayarlar → Cihazlar arası eşitleme.
+  1. GitHub’da gizli bir depo oluştur.
+  2. [Fine-grained token](https://github.com/settings/personal-access-tokens/new) oluştur: *Only select repositories* ile yalnızca o depo, izin olarak *Contents: Read and write*.
+  3. Anahtarı her cihazda (telefon dahil) bir kez yapıştır. Anahtar yalnızca o tarayıcıda saklanır ve sadece GitHub’a gönderilir.
+- **Ne zaman eşitlenir:** Uygulama açılınca, sekmeye dönülünce, bir değişiklikten birkaç saniye sonra ve klavye bağlanınca. Böylece klavye, başka bilgisayarda atanan eylemleri bu bilgisayarın sistemine göre alır. Aynı kayıt iki cihazda değiştiyse son değişiklik kazanır; silinenler diğer cihazlardan da silinir.
+
 ## Kullanım
 
 Chrome, Edge ya da başka bir Chromium tabanlı tarayıcı gerekir (WebHID; Firefox ve Safari desteklemiyor). Klavyeyi kabloyla bağla, usevia.app açıksa kapat.
@@ -88,7 +98,7 @@ Kod yapısı:
 
 - **Faz 2 – Eylem kütüphanesi:** ✓ Kütüphane, Windows/macOS sürümleri, bağlanınca eşitleme, AutoHotkey ve Hammerspoon dosyaları. Sırada: makro kaydı, uygulama açık değilken de işletim sistemine göre çalışan katman seçeneği.
 - **Faz 3 – Yazı antrenmanı:** ✓ 10 parmak dersleri, Türkçe/İngilizce metinler, Python ve Java, hız testi, ısı haritası, istatistikler.
-- **Faz 4:** Bilgisayarlar arası senkron, tuş başına RGB, custom firmware (OS algılama) denemeleri.
+- **Faz 4:** ✓ Cihazlar arası eşitleme (gizli GitHub deposu). Sırada: işletim sistemine göre katman, makro kaydı, klavye başına istatistik, custom firmware (OS algılama) denemeleri. Tuş başına RGB şimdilik rafta.
 
 ## Lisans
 

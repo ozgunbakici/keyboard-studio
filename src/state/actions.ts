@@ -25,6 +25,7 @@ import {
 import {isEmptyPlan, planSync} from '@/library/sync';
 import {osLabel, type KeyBinding, type LibraryAction, type OsId} from '@/library/types';
 import {db, getSetting, setSetting} from '@/storage/db';
+import {freshenForKeyboard, onCloudApplied, startCloudSync} from '@/sync/engine';
 import {ViaApi} from '@/via/api';
 import {Command, Protocol, VIA_USAGE, VIA_USAGE_PAGE} from '@/via/constants';
 import {decodeMacros, encodeMacros, type Macro} from '@/via/macro-bytes';
@@ -103,6 +104,11 @@ export const initApp = async () => {
   await refreshAutoSettings();
   void loadLibrary();
   void loadCustomBackground();
+  onCloudApplied((applied) => {
+    // Actions placed on another computer reach the keyboards plugged in here.
+    if (applied.library && getState().settings.autoSync) void syncAllKeyboards({announce: false});
+  });
+  void startCloudSync();
 
   const hid = (navigator as Navigator & {hid?: HID}).hid;
   if (!hid) return;
@@ -306,7 +312,9 @@ const loadKeyboard = async (id: string, found: FoundDefinition) => {
     };
     setState((s) => ({data: {...s.data, [id]: data}}));
     updateSession(id, {status: 'ready', progress: undefined, firmwareVersion});
-    void autoBackup(id).then(() => (getState().settings.autoSync ? syncKeyboard(id) : null));
+    void autoBackup(id)
+      .then(freshenForKeyboard)
+      .then(() => (getState().settings.autoSync ? syncKeyboard(id) : null));
   } catch (error) {
     updateSession(id, {status: 'error', error: errorText(error), progress: undefined});
   }

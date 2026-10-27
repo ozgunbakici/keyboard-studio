@@ -99,6 +99,13 @@ export const loadTyping = () => {
   return loading;
 };
 
+/** Reads history and settings again after changes from another device were stored. */
+export const reloadTyping = () => {
+  if (!useTyping.getState().loaded) return Promise.resolve();
+  loading = null;
+  return loadTyping();
+};
+
 export const updateTypingSettings = async (patch: Partial<TypingSettings>) => {
   const settings = {...useTyping.getState().settings, ...patch};
   useTyping.setState({settings});

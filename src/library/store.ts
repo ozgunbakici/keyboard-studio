@@ -50,6 +50,12 @@ export const loadLibrary = () => {
   return loading;
 };
 
+/** Reads the library again after changes from another device were stored. */
+export const reloadLibrary = () => {
+  loading = null;
+  return loadLibrary();
+};
+
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : `a-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
 export const createAction = (kind: ActionKind, name: string): LibraryAction => {

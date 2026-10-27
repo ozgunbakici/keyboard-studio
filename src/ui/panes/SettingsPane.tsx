@@ -6,6 +6,7 @@ import {removeCustomBackground, setCustomBackground, useAppearance} from '@/stat
 import {updateSettings} from '@/state/actions';
 import {toast, useStudio, type Settings} from '@/state/store';
 import {Button, Field, Select, Slider, Toggle, cx} from '@/ui/components/ui';
+import {CloudSyncSection} from './CloudSyncSection';
 
 const Choice = ({label, active, onClick, children}: {label: string; active: boolean; onClick: () => void; children: ReactNode}) => (
   <button type="button" onClick={onClick} aria-pressed={active} className="group flex w-36 flex-col gap-1.5 text-left">
@@ -218,6 +219,8 @@ export const SettingsPane = () => {
           <Toggle checked={settings.blinkOnSelect} onChange={(blinkOnSelect) => void updateSettings({blinkOnSelect})} label="Işıkla göster" />
         </Row>
       </section>
+
+      <CloudSyncSection />
 
       <section className="rounded-xl border border-border bg-surface px-5">
         <h2 className="pt-4 text-sm font-semibold">Görünüm</h2>
