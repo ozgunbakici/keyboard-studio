@@ -3,6 +3,7 @@ import type {AnyDefinition, DefinitionVersion} from '@/definitions/parse';
 import type {DefinitionSource} from '@/definitions/repository';
 import type {ResolvedMenu} from '@/definitions/menus';
 import type {HostLayoutId} from '@/keycodes/host-layouts';
+import type {BoardShape} from '@/typing/fingers';
 import type {Macro} from '@/via/macro-bytes';
 
 export type SessionStatus = 'connecting' | 'needs-definition' | 'loading' | 'ready' | 'error' | 'disconnected';
@@ -60,6 +61,8 @@ export type Settings = {
   hostLayoutAuto: boolean;
   os: 'mac' | 'other';
   osAuto: boolean;
+  /** Physical layout of the user's keyboards: the typing trainer draws it, and the Mac US variant follows it. */
+  keyboardShape: BoardShape;
   theme: 'dark' | 'light' | 'system';
   /** Behind the app: plain colour, a photo that comes with the app, or a picture the user uploaded. */
   background: 'plain' | PhotoId | 'custom';
@@ -98,6 +101,7 @@ export const defaultSettings: Settings = {
   hostLayoutAuto: true,
   os: 'other',
   osAuto: true,
+  keyboardShape: 'ansi',
   theme: 'dark',
   background: 'plain',
   backgroundDim: 0.55,

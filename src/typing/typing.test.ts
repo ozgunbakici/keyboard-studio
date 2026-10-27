@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {hostLayouts} from '@/keycodes/host-layouts';
-import {charKey, keysToPress, standardKeys, standardPosition} from './fingers';
+import {charKey, keysToPress, standardBoards, standardPosition} from './fingers';
 import {lessonCharset, lessonStars, lessonText, lessons} from './lessons';
 import {foldTurkish, focusText, normalizeCode, seededRng, splitPassages, testText} from './text';
 import {bookExcerpts} from './content/books';
@@ -70,19 +70,29 @@ describe('touch typing lessons', () => {
 });
 
 describe('finger guide', () => {
-  it('draws a 15-unit ISO board', () => {
-    const right = Math.max(...standardKeys.map((k) => k.x + k.w));
-    expect(right).toBe(15);
-    expect(standardPosition('KC_BSLS')).toBe(standardPosition('KC_NUHS'));
+  it('draws 15-unit ANSI and ISO boards', () => {
+    for (const shape of ['ansi', 'iso'] as const) {
+      for (let row = 0; row < 5; row++) {
+        const keys = standardBoards[shape].filter((k) => k.y === row || (k.h === 2 && k.y + 1 === row));
+        expect(Math.max(...keys.map((k) => k.x + k.w)), `${shape} row ${row}`).toBe(15);
+      }
+    }
+    expect(standardBoards.ansi.some((k) => k.code === 'KC_NUBS')).toBe(false);
+    expect(standardBoards.iso.find((k) => k.code === 'KC_ENT')?.h).toBe(2);
+    // Each board has one backslash key; the other code lands on it.
+    expect(standardPosition('KC_NUHS', 'ansi')).toBe(standardPosition('KC_BSLS', 'ansi'));
+    expect(standardPosition('KC_BSLS', 'iso')).toBe(standardPosition('KC_NUHS', 'iso'));
   });
 
   it('finds characters and the opposite Shift on the US layouts', () => {
-    expect(charKey(hostLayouts.us, 'f')).toMatchObject({key: 'KC_F', shift: false, finger: 'L2'});
-    expect(keysToPress(hostLayouts.us, 'A')).toEqual(['KC_A', 'KC_RSFT']);
-    expect(keysToPress(hostLayouts.us, '(')).toEqual(['KC_9', 'KC_LSFT']);
-    expect(charKey(hostLayouts.us, '\\')?.key).toBe('KC_NUHS');
+    expect(charKey(hostLayouts.us, 'f', 'ansi')).toMatchObject({key: 'KC_F', shift: false, finger: 'L2'});
+    expect(keysToPress(hostLayouts.us, 'A', 'ansi')).toEqual(['KC_A', 'KC_RSFT']);
+    expect(keysToPress(hostLayouts.us, '(', 'ansi')).toEqual(['KC_9', 'KC_LSFT']);
+    expect(charKey(hostLayouts.us, '\\', 'ansi')?.key).toBe('KC_BSLS');
+    expect(charKey(hostLayouts.us, '\\', 'iso')?.key).toBe('KC_NUHS');
+    expect(charKey(hostLayouts['us-mac'], '`', 'ansi')).toMatchObject({key: 'KC_GRV', finger: 'L5'});
     // On a Mac with an ISO keyboard ` sits next to the left Shift.
-    expect(charKey(hostLayouts['us-mac-iso'], '`')).toMatchObject({key: 'KC_NUBS', finger: 'L5'});
-    expect(charKey(hostLayouts.us, '\n')?.key).toBe('KC_ENT');
+    expect(charKey(hostLayouts['us-mac-iso'], '`', 'iso')).toMatchObject({key: 'KC_NUBS', finger: 'L5'});
+    expect(charKey(hostLayouts.us, '\n', 'ansi')?.key).toBe('KC_ENT');
   });
 });

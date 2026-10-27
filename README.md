@@ -30,7 +30,7 @@ Bir işi bir kez tanımla, istediğin klavyenin istediğin tuşuna ata. Eylemler
 
 Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre tasarlandı.
 
-- **10 parmak dersleri:** 24 aşamalı ders: ana sıra, üst ve alt sıra, Shift, noktalama, rakamlar ve kod sembolleri. Her derste yalnızca öğrenilmiş tuşlarla gerçek kelimeler ve alıştırmalar üretilir. Ekrandaki ISO klavye parmak renkleriyle sıradaki tuşu ve hangi parmakla (gerekirse hangi Shift ile) basılacağını gösterir. Derslerde yanlış tuşta imleç bekler; doğruluk ve hedef hıza göre 0–3 yıldız verilir.
+- **10 parmak dersleri:** 24 aşamalı ders: ana sıra, üst ve alt sıra, Shift, noktalama, rakamlar ve kod sembolleri. Her derste yalnızca öğrenilmiş tuşlarla gerçek kelimeler ve alıştırmalar üretilir. Ekrandaki klavye (varsayılan ANSI; klavyenin altındaki düğmeyle ya da Ayarlar’dan ISO yapılabilir) parmak renkleriyle sıradaki tuşu ve hangi parmakla (gerekirse hangi Shift ile) basılacağını gösterir. Derslerde yanlış tuşta imleç bekler; doğruluk ve hedef hıza göre 0–3 yıldız verilir.
 - **Pratik:** Türkçe ve İngilizce kelime ve cümleler (Türkçe karakterler isteğe bağlı: kapalıyken ç ğ ı ö ş ü yerine c g i o s u), kod sembolleri, rakamlar.
 - **Kitaplardan:** Telif süresi dolmuş eserlerden alıntılar, yazar ve eser künyesiyle: Sabahattin Ali, Orhan Veli, Ahmet Haşim, Yunus Emre, Nasreddin Hoca fıkraları; Austen, Dickens, Carroll, Twain, Doyle, Wilde, Wells ve diğerleri.
 - **Kendi metinlerim:** Elindeki bir kitaptan bölüm ya da makale yapıştır; uzun metin cümle sonlarından bölümlere ayrılır, her metinde kaldığın yer saklanır. Birden çok metin tutulabilir.

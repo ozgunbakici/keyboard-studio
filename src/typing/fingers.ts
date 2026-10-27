@@ -2,8 +2,8 @@ import type {RenderKey} from '@/definitions/geometry';
 import {isDeadStroke, type HostLayout} from '@/keycodes/host-layouts';
 
 /**
- * Touch typing: which finger owns which key, a standard ISO keyboard to draw
- * the guide on, and where each character lives on the computer's layout.
+ * Touch typing: which finger owns which key, standard ANSI and ISO keyboards
+ * to draw the guide on, and where each character lives on the computer's layout.
  */
 
 export type Finger = 'L5' | 'L4' | 'L3' | 'L2' | 'R2' | 'R3' | 'R4' | 'R5' | 'T';
@@ -56,15 +56,29 @@ export const homeKeys = ['KC_A', 'KC_S', 'KC_D', 'KC_F', 'KC_J', 'KC_K', 'KC_L',
 
 type Row = [key: string, width: number][];
 
-// A 60% ISO board: every keyboard of the user is ISO, and the finger chart only
-// needs the alphanumeric block.
-const isoRows: Row[] = [
-  [['KC_GRV', 1], ['KC_1', 1], ['KC_2', 1], ['KC_3', 1], ['KC_4', 1], ['KC_5', 1], ['KC_6', 1], ['KC_7', 1], ['KC_8', 1], ['KC_9', 1], ['KC_0', 1], ['KC_MINS', 1], ['KC_EQL', 1], ['KC_BSPC', 2]],
-  [['KC_TAB', 1.5], ['KC_Q', 1], ['KC_W', 1], ['KC_E', 1], ['KC_R', 1], ['KC_T', 1], ['KC_Y', 1], ['KC_U', 1], ['KC_I', 1], ['KC_O', 1], ['KC_P', 1], ['KC_LBRC', 1], ['KC_RBRC', 1]],
-  [['KC_CAPS', 1.75], ['KC_A', 1], ['KC_S', 1], ['KC_D', 1], ['KC_F', 1], ['KC_G', 1], ['KC_H', 1], ['KC_J', 1], ['KC_K', 1], ['KC_L', 1], ['KC_SCLN', 1], ['KC_QUOT', 1], ['KC_NUHS', 1]],
-  [['KC_LSFT', 1.25], ['KC_NUBS', 1], ['KC_Z', 1], ['KC_X', 1], ['KC_C', 1], ['KC_V', 1], ['KC_B', 1], ['KC_N', 1], ['KC_M', 1], ['KC_COMM', 1], ['KC_DOT', 1], ['KC_SLSH', 1], ['KC_RSFT', 2.75]],
-  [['KC_LCTL', 1.25], ['KC_LGUI', 1.25], ['KC_LALT', 1.25], ['KC_SPC', 6.25], ['KC_RALT', 1.25], ['KC_RGUI', 1.25], ['KC_APP', 1.25], ['KC_RCTL', 1.25]],
+/** The two physical layouts: ISO has a key left of Z and a tall Enter. */
+export type BoardShape = 'ansi' | 'iso';
+
+const numberRow: Row = [
+  ['KC_GRV', 1], ['KC_1', 1], ['KC_2', 1], ['KC_3', 1], ['KC_4', 1], ['KC_5', 1], ['KC_6', 1],
+  ['KC_7', 1], ['KC_8', 1], ['KC_9', 1], ['KC_0', 1], ['KC_MINS', 1], ['KC_EQL', 1], ['KC_BSPC', 2],
 ];
+const upperRow: Row = [
+  ['KC_TAB', 1.5], ['KC_Q', 1], ['KC_W', 1], ['KC_E', 1], ['KC_R', 1], ['KC_T', 1], ['KC_Y', 1],
+  ['KC_U', 1], ['KC_I', 1], ['KC_O', 1], ['KC_P', 1], ['KC_LBRC', 1], ['KC_RBRC', 1],
+];
+const homeRow: Row = [
+  ['KC_CAPS', 1.75], ['KC_A', 1], ['KC_S', 1], ['KC_D', 1], ['KC_F', 1], ['KC_G', 1], ['KC_H', 1],
+  ['KC_J', 1], ['KC_K', 1], ['KC_L', 1], ['KC_SCLN', 1], ['KC_QUOT', 1],
+];
+const lowerLetters: Row = [['KC_Z', 1], ['KC_X', 1], ['KC_C', 1], ['KC_V', 1], ['KC_B', 1], ['KC_N', 1], ['KC_M', 1], ['KC_COMM', 1], ['KC_DOT', 1], ['KC_SLSH', 1]];
+const spaceRow: Row = [['KC_LCTL', 1.25], ['KC_LGUI', 1.25], ['KC_LALT', 1.25], ['KC_SPC', 6.25], ['KC_RALT', 1.25], ['KC_RGUI', 1.25], ['KC_APP', 1.25], ['KC_RCTL', 1.25]];
+
+// 60% boards: the finger chart only needs the alphanumeric block.
+const boardRows: Record<BoardShape, Row[]> = {
+  ansi: [numberRow, [...upperRow, ['KC_BSLS', 1.5]], [...homeRow, ['KC_ENT', 2.25]], [['KC_LSFT', 2.25], ...lowerLetters, ['KC_RSFT', 2.75]], spaceRow],
+  iso: [numberRow, upperRow, [...homeRow, ['KC_NUHS', 1]], [['KC_LSFT', 1.25], ['KC_NUBS', 1], ...lowerLetters, ['KC_RSFT', 2.75]], spaceRow],
+};
 
 const alphaKey = /^KC_([A-Z0-9]|GRV|MINS|EQL|LBRC|RBRC|NUHS|NUBS|SCLN|QUOT|COMM|DOT|SLSH|BSLS|SPC)$/;
 
@@ -83,16 +97,15 @@ const makeKey = (code: string, x: number, y: number, w: number, col: number, ext
   row: y,
   col,
   d: false,
-  color: (alphaKey.test(code) ? 'alpha' : 'mod') as RenderKey['color'],
+  color: (code === 'KC_ENT' ? 'accent' : alphaKey.test(code) ? 'alpha' : 'mod') as RenderKey['color'],
   isEncoder: false,
   hasMatrix: true,
   ...extra,
 });
 
-/** The standard ISO keyboard as drawable keys; `code` is the key's position name. */
-export const standardKeys: StandardKey[] = (() => {
+const buildBoard = (shape: BoardShape) => {
   const keys: StandardKey[] = [];
-  isoRows.forEach((row, y) => {
+  boardRows[shape].forEach((row, y) => {
     let x = 0;
     row.forEach(([code, w], col) => {
       keys.push(makeKey(code, x, y, w, col));
@@ -100,15 +113,21 @@ export const standardKeys: StandardKey[] = (() => {
     });
   });
   // ISO Enter: 1.5 wide on the top row, 1.25 wide on the home row.
-  keys.push(makeKey('KC_ENT', 13.75, 1, 1.25, 13, {h: 2, x2: -0.25, y2: 0, w2: 1.5, h2: 1, color: 'accent' as RenderKey['color']}));
+  if (shape === 'iso') keys.push(makeKey('KC_ENT', 13.75, 1, 1.25, 13, {h: 2, x2: -0.25, y2: 0, w2: 1.5, h2: 1}));
   return keys;
-})();
+};
 
-export const standardKeyByCode = new Map(standardKeys.map((k) => [k.code, k]));
+/** The standard keyboards as drawable keys; `code` is the key's position name. */
+export const standardBoards: Record<BoardShape, StandardKey[]> = {ansi: buildBoard('ansi'), iso: buildBoard('iso')};
 
-/** "row,col" position of a key on the standard board, as KeyboardView expects. */
-export const standardPosition = (code: string) => {
-  const key = standardKeyByCode.get(code === 'KC_BSLS' ? 'KC_NUHS' : code);
+const keyByCode = {ansi: new Map(standardBoards.ansi.map((k) => [k.code, k])), iso: new Map(standardBoards.iso.map((k) => [k.code, k]))};
+
+// US layouts type \ with either key, but each board has only one of them.
+const otherBackslash: Record<BoardShape, Record<string, string>> = {ansi: {KC_NUHS: 'KC_BSLS'}, iso: {KC_BSLS: 'KC_NUHS'}};
+
+/** "row,col" position of a key on a standard board, as KeyboardView expects. */
+export const standardPosition = (code: string, shape: BoardShape) => {
+  const key = keyByCode[shape].get(otherBackslash[shape][code] ?? code);
   return key ? `${key.row},${key.col}` : undefined;
 };
 
@@ -121,8 +140,8 @@ const levels: [index: number, shift: boolean, altgr: boolean][] = [
   [3, true, true],
 ];
 
-/** Where a character is typed on the computer's layout (ISO keys preferred). */
-export const charKey = (host: HostLayout, char: string): CharKey | null => {
+/** Where a character is typed on the computer's layout, using the keys the board has. */
+export const charKey = (host: HostLayout, char: string, shape: BoardShape): CharKey | null => {
   if (char === ' ') return {key: 'KC_SPC', shift: false, altgr: false, finger: 'T'};
   if (char === '\n') return {key: 'KC_ENT', shift: false, altgr: false, finger: 'R5'};
   if (char === '\t') return {key: 'KC_TAB', shift: false, altgr: false, finger: 'L5'};
@@ -130,7 +149,9 @@ export const charKey = (host: HostLayout, char: string): CharKey | null => {
     let found: string | null = null;
     for (const [key, out] of Object.entries(host.keys)) {
       if (out[index] !== char || isDeadStroke(host, key, index)) continue;
-      if (key === 'KC_BSLS' && host.keys.KC_NUHS?.[index] === char) continue;
+      if (shape === 'iso' && key === 'KC_BSLS' && host.keys.KC_NUHS?.[index] === char) continue;
+      // An ANSI board has no key left of Z, and its backslash key is KC_BSLS.
+      if (shape === 'ansi' && (key === 'KC_NUBS' || (key === 'KC_NUHS' && host.keys.KC_BSLS?.[index] === char))) continue;
       found = key;
       break;
     }
@@ -140,8 +161,8 @@ export const charKey = (host: HostLayout, char: string): CharKey | null => {
 };
 
 /** Keys to light up for a character: the key itself plus the Shift of the other hand. */
-export const keysToPress = (host: HostLayout, char: string): string[] => {
-  const where = charKey(host, char);
+export const keysToPress = (host: HostLayout, char: string, shape: BoardShape): string[] => {
+  const where = charKey(host, char, shape);
   if (!where) return [];
   const keys = [where.key];
   if (where.shift) keys.push(where.finger && isLeftHand(where.finger) ? 'KC_RSFT' : 'KC_LSFT');

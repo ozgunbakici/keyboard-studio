@@ -64,9 +64,12 @@ const detectOs = (): 'mac' | 'other' => {
   return /mac/i.test(platform) ? 'mac' : 'other';
 };
 
-/** US on a Mac means the Mac US layout (Option characters), and the other way round. */
-const usVariantFor = (os: Settings['os'], layout: Settings['hostLayout']): Settings['hostLayout'] => {
-  if (os === 'mac' && layout === 'us') return 'us-mac-iso';
+/**
+ * US on a Mac means the Mac US layout (Option characters) of the keyboard's
+ * shape, as macOS swaps § and ` on ISO keyboards; and the other way round.
+ */
+const usVariantFor = (os: Settings['os'], layout: Settings['hostLayout'], shape: Settings['keyboardShape']): Settings['hostLayout'] => {
+  if (os === 'mac' && layout === 'us') return shape === 'iso' ? 'us-mac-iso' : 'us-mac';
   if (os !== 'mac' && (layout === 'us-mac' || layout === 'us-mac-iso')) return 'us';
   return layout;
 };
@@ -74,7 +77,9 @@ const usVariantFor = (os: Settings['os'], layout: Settings['hostLayout']): Setti
 export const updateSettings = async (patch: Partial<Settings>) => {
   const before = getState().settings;
   const settings = {...before, ...patch};
-  if (patch.os !== undefined && patch.hostLayout === undefined) settings.hostLayout = usVariantFor(settings.os, settings.hostLayout);
+  if (patch.os !== undefined && patch.hostLayout === undefined) {
+    settings.hostLayout = usVariantFor(settings.os, settings.hostLayout, settings.keyboardShape);
+  }
   setState({settings});
   await setSetting('settings', settings);
   // Library keys follow the computer: a corrected OS or layout rewrites them.
@@ -89,7 +94,10 @@ export const refreshAutoSettings = async () => {
     const detected = await detectHostLayout(patch.os ?? settings.os);
     if (detected) patch.hostLayout = detected;
     // Without the Keyboard Map API, at least pick the right US variant for the OS.
-    else if ((patch.os ?? settings.os) === 'mac' && settings.hostLayout === 'us') patch.hostLayout = 'us-mac-iso';
+    else {
+      const variant = usVariantFor(patch.os ?? settings.os, settings.hostLayout, settings.keyboardShape);
+      if (variant !== settings.hostLayout) patch.hostLayout = variant;
+    }
   }
   if (Object.keys(patch).length) setState({settings: {...getState().settings, ...patch}});
 };

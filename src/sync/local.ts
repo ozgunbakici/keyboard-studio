@@ -10,7 +10,17 @@ import {emptyLocal, sameValue, type Collection, type LocalChange, type LocalStat
  */
 
 /** Settings shared by every device; the computer's layout and OS stay with each one. */
-const studioPrefs = ['theme', 'background', 'backgroundDim', 'backgroundBlur', 'keyTheme', 'advanceSelection', 'blinkOnSelect', 'autoSync'] as const;
+const studioPrefs = [
+  'keyboardShape',
+  'theme',
+  'background',
+  'backgroundDim',
+  'backgroundBlur',
+  'keyTheme',
+  'advanceSelection',
+  'blinkOnSelect',
+  'autoSync',
+] as const;
 const typingPrefs = [
   'turkishChars',
   'practiceMode',

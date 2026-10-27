@@ -1,6 +1,6 @@
 import type {HostLayout} from '@/keycodes/host-layouts';
 import type {KeyStat} from './engine';
-import {charKey} from './fingers';
+import {charKey, type BoardShape} from './fingers';
 import {lessonStars} from './lessons';
 import type {TypingRecord} from './store';
 
@@ -38,10 +38,10 @@ export const weakKeys = (totals: Map<string, KeyStat>, {minHits = 12, limit = 8}
 export type KeyHeat = {hits: number; errors: number; rate: number};
 
 /** Mistakes per physical key ("KC_A"), merging a key's characters (a and A). */
-export const keyHeat = (totals: Map<string, KeyStat>, host: HostLayout) => {
+export const keyHeat = (totals: Map<string, KeyStat>, host: HostLayout, shape: BoardShape) => {
   const byKey = new Map<string, KeyHeat>();
   for (const [ch, s] of totals) {
-    const where = charKey(host, ch);
+    const where = charKey(host, ch, shape);
     if (!where || where.key === 'KC_SPC') continue;
     const t = byKey.get(where.key) ?? {hits: 0, errors: 0, rate: 0};
     byKey.set(where.key, {hits: t.hits + s.hits, errors: t.errors + s.errors, rate: 0});

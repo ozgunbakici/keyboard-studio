@@ -3,18 +3,34 @@ import {KeycodeCodec} from '@/keycodes/codec';
 import {hostLayouts} from '@/keycodes/host-layouts';
 import {keyLabel} from '@/keycodes/labels';
 import type {RenderKey} from '@/definitions/geometry';
+import {updateSettings} from '@/state/actions';
 import {useStudio} from '@/state/store';
-import {charKey, fingerColors, fingerNames, fingerOf, keysToPress, standardKeys, standardPosition, type Finger, type StandardKey} from '@/typing/fingers';
+import {
+  charKey,
+  fingerColors,
+  fingerNames,
+  fingerOf,
+  keysToPress,
+  standardBoards,
+  standardPosition,
+  type BoardShape,
+  type Finger,
+  type StandardKey,
+} from '@/typing/fingers';
+import {cx} from '@/ui/components/ui';
 import {KeyboardView} from '@/ui/keyboard/KeyboardView';
 
 const codec = KeycodeCodec.forProtocol(12);
 
-const tints = new Map(
-  standardKeys.flatMap((key) => {
-    const finger = fingerOf.get(key.code);
-    return finger ? [[`${key.row},${key.col}`, fingerColors[finger]] as const] : [];
-  }),
-);
+const fingerTints = (keys: StandardKey[]) =>
+  new Map(
+    keys.flatMap((key) => {
+      const finger = fingerOf.get(key.code);
+      return finger ? [[`${key.row},${key.col}`, fingerColors[finger]] as const] : [];
+    }),
+  );
+
+const tints: Record<BoardShape, Map<string, string>> = {ansi: fingerTints(standardBoards.ansi), iso: fingerTints(standardBoards.iso)};
 
 const legendFingers: [Finger, string][] = [
   ['L5', 'Serçe'],
@@ -26,9 +42,33 @@ const legendFingers: [Finger, string][] = [
 
 const charName = (ch: string) => (ch === ' ' ? 'Boşluk' : ch === '\n' ? 'Enter' : ch);
 
+/** ANSI or ISO; the choice is kept in the settings and used everywhere. */
+export const ShapeSwitch = ({className}: {className?: string}) => {
+  const shape = useStudio((s) => s.settings.keyboardShape);
+  return (
+    <div role="radiogroup" aria-label="Klavye dizilimi" className={cx('inline-flex rounded-md border border-border p-0.5', className)}>
+      {(['ansi', 'iso'] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={shape === value}
+          onClick={() => void updateSettings({keyboardShape: value})}
+          className={cx(
+            'rounded px-2 py-0.5 text-[11px] font-semibold transition-colors',
+            shape === value ? 'bg-surface-3 text-fg' : 'text-muted hover:text-fg',
+          )}
+        >
+          {value.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 /**
- * Standard ISO keyboard with finger colours. `next` lights up the key to press
- * (and the other hand's Shift); `heat` paints mistakes instead.
+ * Standard ANSI or ISO keyboard with finger colours. `next` lights up the key
+ * to press (and the other hand's Shift); `heat` paints mistakes instead.
  */
 export const TrainerKeyboard = ({
   next,
@@ -44,6 +84,7 @@ export const TrainerKeyboard = ({
 }) => {
   const hostId = useStudio((s) => s.settings.hostLayout);
   const os = useStudio((s) => s.settings.os);
+  const shape = useStudio((s) => s.settings.keyboardShape);
   const host = hostLayouts[hostId];
   const ctx = useMemo(() => ({codec, host, os}), [host, os]);
 
@@ -62,21 +103,25 @@ export const TrainerKeyboard = ({
 
   const pressed = useMemo(() => {
     if (next === undefined) return undefined;
-    return new Set(keysToPress(host, next).map(standardPosition).filter((p): p is string => !!p));
-  }, [host, next]);
+    return new Set(
+      keysToPress(host, next, shape)
+        .map((code) => standardPosition(code, shape))
+        .filter((p): p is string => !!p),
+    );
+  }, [host, next, shape]);
 
-  const where = next !== undefined ? charKey(host, next) : null;
+  const where = next !== undefined ? charKey(host, next, shape) : null;
   const finger = where?.finger;
 
   return (
     <div className={className}>
       <div className="mx-auto w-full max-w-[860px]">
         <KeyboardView
-          keys={standardKeys}
+          keys={standardBoards[shape]}
           labelFor={labelFor}
           pressed={pressed}
           heat={heat}
-          tints={heat ? undefined : tints}
+          tints={heat ? undefined : tints[shape]}
           className="w-full select-none"
           ariaLabel={heat ? 'Hata ısı haritası' : 'Parmak rehberi'}
         />
@@ -97,6 +142,7 @@ export const TrainerKeyboard = ({
               {name}
             </span>
           ))}
+          <ShapeSwitch />
         </div>
       )}
     </div>

@@ -44,6 +44,20 @@ test('Python lessons fill in indentation after Enter', async ({page}) => {
   await expect(page.getByText('hiç hata yok')).toBeVisible();
 });
 
+test('the finger guide is an ANSI board unless ISO is chosen', async ({page}) => {
+  await openTrainer(page);
+  const guide = page.getByLabel('Parmak rehberi');
+  await expect(guide.locator('[data-key-id="std-KC_BSLS"]')).toHaveCount(1);
+  await expect(guide.locator('[data-key-id="std-KC_NUBS"]')).toHaveCount(0);
+  await page.getByRole('radio', {name: 'ISO', exact: true}).click();
+  await expect(guide.locator('[data-key-id="std-KC_NUBS"]')).toHaveCount(1);
+  await expect(guide.locator('[data-key-id="std-KC_BSLS"]')).toHaveCount(0);
+  // Kept in the settings.
+  await page.reload();
+  await page.getByRole('button', {name: 'Ayarlar', exact: true}).click();
+  await expect(page.getByLabel('Klavye dizilimi')).toHaveValue('iso');
+});
+
 test('Turkish practice drops ç ğ ı ö ş ü unless asked for', async ({page}) => {
   await openTrainer(page);
   await page.getByRole('tab', {name: /Pratik/}).click();

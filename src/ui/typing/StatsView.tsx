@@ -5,7 +5,7 @@ import {hostLayouts} from '@/keycodes/host-layouts';
 import {keyLabel} from '@/keycodes/labels';
 import {getCodec} from '@/state/actions';
 import {useStudio} from '@/state/store';
-import {standardKeys} from '@/typing/fingers';
+import {standardBoards} from '@/typing/fingers';
 import {lessons} from '@/typing/lessons';
 import {aggregateKeys, heatScale, keyHeat, lessonBest, summary, weakKeys, type KeyHeat} from '@/typing/stats';
 import {clearTypingHistory, updateTypingSettings, useTyping, type TypingKind} from '@/typing/store';
@@ -80,13 +80,14 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
   const records = useTyping((s) => s.records);
   const goal = useTyping((s) => s.settings.goalWpm);
   const hostId = useStudio((s) => s.settings.hostLayout);
+  const shape = useStudio((s) => s.settings.keyboardShape);
   const hasKeyboard = useStudio((s) => !!(s.selectedId && s.data[s.selectedId]));
   const [kind, setKind] = useState<TypingKind>('test');
   const [own, setOwn] = useState(true);
 
   const totals = useMemo(() => aggregateKeys(records), [records]);
   const weak = useMemo(() => weakKeys(totals), [totals]);
-  const heat = useMemo(() => keyHeat(totals, hostLayouts[hostId]), [totals, hostId]);
+  const heat = useMemo(() => keyHeat(totals, hostLayouts[hostId], shape), [totals, hostId, shape]);
   const s = useMemo(() => summary(records), [records]);
   const stars = useMemo(() => lessons.reduce((sum, l) => sum + (lessonBest(records, l.id, goal)?.stars ?? 0), 0), [records, goal]);
 
@@ -101,7 +102,7 @@ export const StatsView = ({onPractice}: {onPractice: () => void}) => {
   const series = records.filter((r) => r.kind === kind).slice(-40);
   const scale = heatScale(heat);
   const standardHeat = new Map<string, number>();
-  for (const key of standardKeys) {
+  for (const key of standardBoards[shape]) {
     const v = scale(heat.get(key.code));
     if (v !== undefined) standardHeat.set(`${key.row},${key.col}`, v);
   }

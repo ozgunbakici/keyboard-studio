@@ -202,6 +202,20 @@ export const SettingsPane = () => {
             Otomatik
           </label>
         </Row>
+        <Row
+          title="Klavye dizilimi"
+          description="Yazı antrenmanındaki ekran klavyesi bu dizilimle çizilir. ANSI: tek sıra Enter, geniş sol Shift. ISO: iki sıra Enter, Z’nin solunda fazladan tuş."
+        >
+          <Select
+            value={settings.keyboardShape}
+            label="Klavye dizilimi"
+            onChange={(keyboardShape) => void updateSettings({keyboardShape})}
+            options={[
+              {value: 'ansi', label: 'ANSI'},
+              {value: 'iso', label: 'ISO'},
+            ]}
+          />
+        </Row>
       </section>
 
       <section className="rounded-xl border border-border bg-surface px-5">
