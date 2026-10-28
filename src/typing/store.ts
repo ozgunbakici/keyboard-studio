@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {db, getSetting, setSetting} from '@/storage/db';
 import type {TypingResult} from './engine';
+import type {SwitchSound} from './sound';
 import type {Language} from './text';
 
 export type TypingKind = 'lesson' | 'practice' | 'test';
@@ -58,6 +59,10 @@ export type TypingSettings = {
   practiceSource: PracticeSource;
   /** Practice text length: about two lines, or four and more. */
   practiceLength: 'normal' | 'long';
+  /** Sound of each key press, like a switch type; off by default. */
+  switchSound: SwitchSound;
+  /** 0–1. */
+  soundVolume: number;
   /** Next lesson of the code courses. */
   course: {python: number; java: number};
 };
@@ -76,6 +81,8 @@ export const defaultTypingSettings: TypingSettings = {
   activeText: null,
   practiceSource: 'tr-words',
   practiceLength: 'normal',
+  switchSound: 'off',
+  soundVolume: 0.6,
   course: {python: 0, java: 0},
 };
 

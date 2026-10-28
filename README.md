@@ -35,6 +35,7 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
 - **Kitaplardan:** Telif süresi dolmuş eserlerden alıntılar, yazar ve eser künyesiyle: Sabahattin Ali, Orhan Veli, Ahmet Haşim, Yunus Emre, Nasreddin Hoca fıkraları; Austen, Dickens, Carroll, Twain, Doyle, Wilde, Wells ve diğerleri.
 - **Kendi metinlerim:** Elindeki bir kitaptan bölüm ya da makale yapıştır; uzun metin cümle sonlarından bölümlere ayrılır, her metinde kaldığın yer saklanır. Birden çok metin tutulabilir.
 - **Python’u yazarak öğren:** Değişkenlerden sınıflara, dataclass’a ve küçük bir projeye 20 açıklamalı ders. **Java:** 12 parça (stream, record, switch, Optional…). Kodda satır başı girintisi Enter’dan sonra kendiliğinden gelir.
+- **Tuş sesi:** Antrenmanın sağ üstündeki ses düğmesinden switch tipi seçilir: lineer, tactile, tıklı ya da tok (thock). Sesler kayıt değil, tarayıcıda sentezlenir; boşluk ve büyük tuşlar daha derin çıkar, ses düzeyi ayarlanabilir.
 - **Hız testi:** 15 / 30 / 60 / 120 saniye, Türkçe veya İngilizce, isteğe bağlı noktalama ve rakam. Sonuçta saniye saniye hız grafiği.
 - **İstatistik:** Son testlerin ortalaması ve gidişatı, hız ve doğruluk grafikleri, bağlı klavyenin kendi dizilimi üzerinde hata ısı haritası, en çok zorlandığın tuşlar ve onlara özel alıştırma.
 

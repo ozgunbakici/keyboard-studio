@@ -11,6 +11,7 @@ import {
   type TypingResult,
   type TypingState,
 } from '@/typing/engine';
+import {keySound} from '@/typing/sound';
 import {IconButton, cx} from '@/ui/components/ui';
 import {TrainerKeyboard} from './TrainerKeyboard';
 
@@ -97,6 +98,7 @@ const useTypingRun = ({
 
   const handlers = {
     onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!event.repeat) keySound.press(event.key);
       if (event.key === 'Dead') composition.current.dead = true;
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -112,6 +114,7 @@ const useTypingRun = ({
         event.preventDefault();
       }
     },
+    onKeyUp: (event: React.KeyboardEvent<HTMLTextAreaElement>) => keySound.release(event.key),
     onInput: (event: React.FormEvent<HTMLTextAreaElement>) => {
       const native = event.nativeEvent as InputEvent;
       const element = event.currentTarget;
@@ -280,6 +283,8 @@ export const TypingRunner = ({
       if (focused || event.ctrlKey || event.metaKey || event.altKey || event.key.length !== 1) return;
       if (target.closest('input, textarea, select, [contenteditable], dialog')) return;
       inputRef.current?.focus();
+      // The field missed this key's keydown; it still makes its sound.
+      if (!event.repeat) keySound.press(event.key);
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);

@@ -4,6 +4,7 @@ import {loadTyping, useTyping} from '@/typing/store';
 import {cx} from '@/ui/components/ui';
 import {LessonsView} from '@/ui/typing/LessonsView';
 import {PracticeView} from '@/ui/typing/PracticeView';
+import {SoundMenu} from '@/ui/typing/SoundMenu';
 import {StatsView} from '@/ui/typing/StatsView';
 import {TestView} from '@/ui/typing/TestView';
 
@@ -26,25 +27,31 @@ export const TypingPane = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex overflow-x-auto border-b border-border px-3 py-2.5 sm:px-4">
-        <div role="tablist" aria-label="Antrenman" className="flex shrink-0 rounded-lg border border-border p-0.5">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={cx(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium sm:px-3',
-                tab === t.id ? 'bg-surface-3 text-fg' : 'text-muted hover:text-fg',
-              )}
-            >
-              {t.icon}
-              <span className="sm:hidden">{t.short}</span>
-              <span className="hidden sm:inline">{t.label}</span>
-            </button>
-          ))}
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 sm:px-4">
+        {/* Only the tabs scroll sideways, so the sound menu can open below its button. */}
+        <div className="min-w-0 overflow-x-auto">
+          <div role="tablist" aria-label="Antrenman" className="flex shrink-0 rounded-lg border border-border p-0.5">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className={cx(
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium sm:px-3',
+                  tab === t.id ? 'bg-surface-3 text-fg' : 'text-muted hover:text-fg',
+                )}
+              >
+                {t.icon}
+                <span className="sm:hidden">{t.short}</span>
+                <span className="hidden sm:inline">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="ml-auto">
+          <SoundMenu />
         </div>
       </div>
       {!loaded ? null : tab === 'lessons' ? (

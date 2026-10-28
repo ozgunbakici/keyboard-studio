@@ -32,6 +32,8 @@ const typingPrefs = [
   'testNumbers',
   'practiceSource',
   'practiceLength',
+  'switchSound',
+  'soundVolume',
   'course',
   'activeText',
 ] as const;

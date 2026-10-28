@@ -58,6 +58,41 @@ test('the finger guide is an ANSI board unless ISO is chosen', async ({page}) =>
   await expect(page.getByLabel('Klavye dizilimi')).toHaveValue('iso');
 });
 
+test('key presses sound like the chosen switch, and stay silent by default', async ({page}) => {
+  // Counts every sound layer the page starts.
+  await page.addInitScript(() => {
+    const w = window as unknown as {sounds: number};
+    w.sounds = 0;
+    // Noise layers start through AudioBufferSourceNode's own start, tones through the shared one.
+    for (const proto of [AudioScheduledSourceNode.prototype, AudioBufferSourceNode.prototype] as {start: (...a: unknown[]) => void}[]) {
+      if (!Object.prototype.hasOwnProperty.call(proto, 'start')) continue;
+      const start = proto.start;
+      proto.start = function (this: unknown, ...args: unknown[]) {
+        w.sounds++;
+        return start.apply(this, args);
+      };
+    }
+  });
+  const sounds = () => page.evaluate(() => (window as unknown as {sounds: number}).sounds);
+  await openTrainer(page);
+  await page.keyboard.type('jf');
+  expect(await sounds()).toBe(0);
+
+  await page.getByRole('button', {name: 'Tuş sesi'}).click();
+  await page.getByRole('radio', {name: /^Tıklı/}).click();
+  // Choosing a switch plays a few keystrokes of it.
+  await expect.poll(sounds).toBeGreaterThan(10);
+  await expect(page.getByRole('slider', {name: 'Ses düzeyi'})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(1000);
+  const afterPreview = await sounds();
+
+  // Typing goes straight back to the text, each key with a click.
+  await page.keyboard.type('jf');
+  await expect.poll(sounds).toBeGreaterThanOrEqual(afterPreview + 2 * 6);
+  await expect(page.getByRole('button', {name: 'Tuş sesi'})).toContainText('Tıklı');
+});
+
 test('Turkish practice drops ç ğ ı ö ş ü unless asked for', async ({page}) => {
   await openTrainer(page);
   await page.getByRole('tab', {name: /Pratik/}).click();
