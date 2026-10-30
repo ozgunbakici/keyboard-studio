@@ -310,7 +310,9 @@ export const KeymapPane = () => {
         </div>
       </div>
 
-      <div className="min-h-[300px] flex-1 overflow-hidden rounded-xl border border-border bg-surface">
+      {/* The picker takes the space left, at least a usable height, and scrolls inside; on short
+          screens the page scrolls down to it. */}
+      <div className="flex min-h-[75vh] flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface md:min-h-[min(34rem,80vh)]">
         <KeycodePicker
           onPick={(value) => void assignKeycode(value)}
           onPickAction={(id) => void assignAction(id)}

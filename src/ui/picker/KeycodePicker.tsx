@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {BookMarked, Keyboard, Search, Sparkles, X} from 'lucide-react';
 import type {CatalogGroup, CatalogKey} from '@/keycodes/catalog';
 import {domCodeToKeycode} from '@/keycodes/dom-codes';
-import {keyLabel, type LabelContext} from '@/keycodes/labels';
+import {keyLabel} from '@/keycodes/labels';
 import {useLibrary} from '@/library/store';
 import {kindLabel, type LibraryAction} from '@/library/types';
 import {setPane} from '@/state/actions';
@@ -10,52 +10,13 @@ import {useCatalog, useLabelContext} from '@/ui/hooks';
 import {Button, cx} from '@/ui/components/ui';
 import {deliveryModeText, kindOrder, useCurrentOs, useDelivery} from '@/ui/library/common';
 import {AdvancedBuilder} from './AdvancedBuilder';
+import {BasicKeyboard} from './BasicKeyboard';
+import {GroupGrid} from './keys';
 
 const fold = (text: string) =>
   text
     .toLocaleLowerCase('tr-TR')
     .replace(/[çğıöşü]/g, (c) => ({ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u'})[c] ?? c);
-
-const PickerKey = ({entry, ctx, onPick, active}: {entry: CatalogKey; ctx: LabelContext; onPick: (value: number) => void; active: boolean}) => {
-  const value = ctx.codec.parse(entry.code);
-  if (value === null) return null;
-  const label = keyLabel(value, ctx);
-  // Catalog labels are more descriptive for non-character keys.
-  const showCatalogLabel = label.tone !== 'normal' || !label.main || [...label.main].length > 1;
-  const main = showCatalogLabel ? entry.label : label.main;
-  const top = showCatalogLabel ? undefined : label.top;
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(value)}
-      title={entry.title ? `${entry.label} — ${entry.title} (${entry.code})` : `${entry.label} (${entry.code})`}
-      style={{width: `calc(${entry.w ?? 1} * 3.4rem + ${((entry.w ?? 1) - 1) * 0.375}rem)`}}
-      className={cx(
-        'relative flex h-[3.4rem] shrink-0 flex-col items-center justify-center rounded-lg border px-1 text-center leading-tight transition-colors',
-        active ? 'border-accent bg-accent-soft' : 'border-border bg-surface-2 hover:border-border-strong hover:bg-surface-3',
-      )}
-    >
-      {top && <span className="text-[10px] text-muted">{top}</span>}
-      <span className={cx('break-words', [...main].length <= 2 ? 'text-base font-semibold' : 'text-[11px] font-medium')}>{main}</span>
-    </button>
-  );
-};
-
-const GroupGrid = ({group, ctx, onPick, currentCode}: {group: CatalogGroup; ctx: LabelContext; onPick: (value: number) => void; currentCode?: string}) => (
-  <div className="flex flex-col gap-4">
-    {group.description && <p className="text-xs text-muted">{group.description}</p>}
-    {group.sections.map((section) => (
-      <div key={section.label} className="flex flex-col gap-2">
-        <h4 className="text-[11px] font-semibold tracking-wide text-faint uppercase">{section.label}</h4>
-        <div className="flex flex-wrap gap-1.5">
-          {section.keys.map((entry) => (
-            <PickerKey key={entry.code} entry={entry} ctx={ctx} onPick={onPick} active={entry.code === currentCode} />
-          ))}
-        </div>
-      </div>
-    ))}
-  </div>
-);
 
 const ActionButton = ({action, onPick, active}: {action: LibraryAction; onPick: (id: string) => void; active: boolean}) => {
   const delivery = useDelivery(action, useCurrentOs());
@@ -213,7 +174,7 @@ export const KeycodePicker = ({
   const showingGroup = !results && tab !== 'advanced' && tab !== 'actions';
 
   return (
-    <div className={cx('flex min-h-0 flex-col', disabled && 'pointer-events-none opacity-50')}>
+    <div className={cx('flex h-full min-h-0 flex-1 flex-col', disabled && 'pointer-events-none opacity-50')}>
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 pt-3 pb-2">
         <div className="flex flex-wrap gap-1" role="tablist">
           {groups.map((group) => (
@@ -304,6 +265,8 @@ export const KeycodePicker = ({
           <ActionsTab onPick={onPickAction} currentActionId={currentActionId} />
         ) : tab === 'advanced' ? (
           <AdvancedBuilder onPick={onPick} currentValue={currentValue} />
+        ) : active.id === 'basic' ? (
+          <BasicKeyboard group={active} ctx={ctx} onPick={onPick} currentValue={currentValue} />
         ) : (
           <GroupGrid group={active} ctx={ctx} onPick={onPick} currentCode={currentCode} />
         )}

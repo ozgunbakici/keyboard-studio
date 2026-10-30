@@ -29,6 +29,20 @@ test('assigns a keycode, advances the selection and undoes it', async ({page}) =
   await expect(key(page, 2, 1)).toHaveAttribute('aria-label', /^Q /);
 });
 
+test('basic keys are picked from a keyboard, and the whole picker can be scrolled to', async ({page}) => {
+  await openDemo(page, 'us');
+  await key(page, 2, 1).click();
+  const board = page.getByRole('group', {name: 'Temel tuşlar'});
+  // An ANSI board by default: backslash above Enter, no key left of Z.
+  await expect(board.getByRole('button', {name: 'ISO: Z’nin solu'})).toHaveCount(0);
+  await expect(page.getByRole('button', {name: 'ISO: Z’nin solu'})).toBeVisible();
+  await board.getByRole('button', {name: 'Z', exact: true}).click();
+  await expect(key(page, 2, 1)).toHaveAttribute('aria-label', /^Z /);
+  // The selection moved on to W; F24 sits at the bottom of the picker.
+  await page.getByRole('button', {name: 'F24', exact: true}).click();
+  await expect(key(page, 2, 2)).toHaveAttribute('aria-label', /^F24/);
+});
+
 test('puts AltGr symbols on a key in one click', async ({page}) => {
   await openDemo(page);
   await key(page, 4, 11).click();
