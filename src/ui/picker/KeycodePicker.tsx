@@ -12,6 +12,7 @@ import {deliveryModeText, kindOrder, useCurrentOs, useDelivery} from '@/ui/libra
 import {AdvancedBuilder} from './AdvancedBuilder';
 import {BasicKeyboard} from './BasicKeyboard';
 import {GroupGrid} from './keys';
+import {MouseKeysNotice} from './MouseKeysNotice';
 
 const fold = (text: string) =>
   text
@@ -267,6 +268,11 @@ export const KeycodePicker = ({
           <AdvancedBuilder onPick={onPick} currentValue={currentValue} />
         ) : active.id === 'basic' ? (
           <BasicKeyboard group={active} ctx={ctx} onPick={onPick} currentValue={currentValue} />
+        ) : active.id === 'mouse' ? (
+          <div className="flex flex-col gap-4">
+            <MouseKeysNotice />
+            <GroupGrid group={active} ctx={ctx} onPick={onPick} currentCode={currentCode} />
+          </div>
         ) : (
           <GroupGrid group={active} ctx={ctx} onPick={onPick} currentCode={currentCode} />
         )}

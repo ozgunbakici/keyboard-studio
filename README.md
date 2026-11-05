@@ -54,6 +54,11 @@ Hız, doğruluk ve 10 parmak için; US düzeninde (Windows ve Mac) yazmaya göre
   3. Anahtarı her cihazda (telefon dahil) bir kez yapıştır. Anahtar yalnızca o tarayıcıda saklanır ve sadece GitHub’a gönderilir.
 - **Ne zaman eşitlenir:** Uygulama açılınca, sekmeye dönülünce, bir değişiklikten birkaç saniye sonra ve klavye bağlanınca. Böylece klavye, başka bilgisayarda atanan eylemleri bu bilgisayarın sistemine göre alır. Aynı kayıt iki cihazda değiştiyse son değişiklik kazanır; silinenler diğer cihazlardan da silinir.
 
+### Firmware
+
+- **Fare tuşları kapalı klavyeler:** Bazı klavyelerin standart firmware’inde fare tuşları yoktur (wilba.tech, RAMA WORKS ve Zeal kartlarının çoğu). Uygulama bunları tanır ve Fare sekmesinde uyarır.
+- **WT60-H1:** Fare tuşları açık, VIA uyumlu firmware [`firmware/`](firmware/README.md) klasöründe; yükleme adımları orada.
+
 ## Kullanım
 
 Chrome, Edge ya da başka bir Chromium tabanlı tarayıcı gerekir (WebHID; Firefox ve Safari desteklemiyor). Klavyeyi kabloyla bağla, usevia.app açıksa kapat.
