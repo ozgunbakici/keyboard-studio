@@ -63,6 +63,15 @@ export type TypingSettings = {
   switchSound: SwitchSound;
   /** 0–1. */
   soundVolume: number;
+  /** Music from the user's own files, playing while the typing speed stays up. */
+  musicEnabled: boolean;
+  /** WPM the last few seconds must reach for the music to play. */
+  musicThreshold: number;
+  /** Below the threshold the music turns down, or pauses. */
+  musicBelow: 'duck' | 'pause';
+  /** 0–1. */
+  musicVolume: number;
+  musicShuffle: boolean;
   /** Next lesson of the code courses. */
   course: {python: number; java: number};
 };
@@ -83,6 +92,11 @@ export const defaultTypingSettings: TypingSettings = {
   practiceLength: 'normal',
   switchSound: 'off',
   soundVolume: 0.6,
+  musicEnabled: false,
+  musicThreshold: 50,
+  musicBelow: 'duck',
+  musicVolume: 0.6,
+  musicShuffle: false,
   course: {python: 0, java: 0},
 };
 
