@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {BarChart3, GraduationCap, Keyboard, Timer} from 'lucide-react';
+import {loadCustomSound} from '@/typing/sound';
 import {loadTyping, useTyping} from '@/typing/store';
 import {cx} from '@/ui/components/ui';
 import {LessonsView} from '@/ui/typing/LessonsView';
@@ -23,6 +24,7 @@ export const TypingPane = () => {
 
   useEffect(() => {
     void loadTyping();
+    void loadCustomSound();
   }, []);
 
   return (
