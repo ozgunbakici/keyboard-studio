@@ -12,6 +12,7 @@ import {
   type TypingState,
 } from '@/typing/engine';
 import {keySound} from '@/typing/sound';
+import {music} from '@/typing/music';
 import {IconButton, cx} from '@/ui/components/ui';
 import {TrainerKeyboard} from './TrainerKeyboard';
 
@@ -59,6 +60,10 @@ const useTypingRun = ({
     }, 100);
     return () => clearInterval(id);
   }, [state.startedAt, state.finishedAt, timeLimit]);
+
+  // Background music follows the speed of the run on screen.
+  useEffect(() => music.track(state, performance.now()), [state, now]);
+  useEffect(() => () => music.rest(), []);
 
   useEffect(() => {
     if (state.finishedAt === null || reported.current) return;

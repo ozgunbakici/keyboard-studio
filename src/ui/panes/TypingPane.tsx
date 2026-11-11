@@ -1,9 +1,11 @@
 import {useEffect, useState} from 'react';
 import {BarChart3, GraduationCap, Keyboard, Timer} from 'lucide-react';
+import {loadCustomSound} from '@/typing/sound';
 import {loadTyping, useTyping} from '@/typing/store';
 import {cx} from '@/ui/components/ui';
 import {LessonsView} from '@/ui/typing/LessonsView';
 import {PracticeView} from '@/ui/typing/PracticeView';
+import {MusicMenu} from '@/ui/typing/MusicMenu';
 import {SoundMenu} from '@/ui/typing/SoundMenu';
 import {StatsView} from '@/ui/typing/StatsView';
 import {TestView} from '@/ui/typing/TestView';
@@ -23,6 +25,7 @@ export const TypingPane = () => {
 
   useEffect(() => {
     void loadTyping();
+    void loadCustomSound();
   }, []);
 
   return (
@@ -50,7 +53,8 @@ export const TypingPane = () => {
             ))}
           </div>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          <MusicMenu />
           <SoundMenu />
         </div>
       </div>
