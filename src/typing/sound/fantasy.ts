@@ -112,7 +112,7 @@ const anvil: Recipe = (role, key, p) => {
   const base = (520 + (keyHash(key) % 7) * 30) * p;
   if (role === 'space') return strike(0, 380 * p, 1.35, 1.2, 75);
   // The hammer bounces once.
-  if (role === 'enter') return [...strike(0, base, 1, 1, 100).slice(0, 4), ...partials(0.11, base, anvilRatios.slice(0, 2), [0.18, 0.12], [0.4, 0.25])];
+  if (role === 'enter') return [...strike(0, base, 1, 1, 100).slice(0, 4), ...partials(0.11, base, [1], [0.2], [0.4])];
   if (role === 'backspace') return strike(0, base * 1.25, 0.6, 0.8, 120);
   return strike(0, role === 'wide' ? base * 0.85 : base, 1, 1, 100);
 };
@@ -163,7 +163,10 @@ const clack = (at: number, p: number, gain: number): Voice[] => [
 ];
 
 const typewriter: Recipe = (role, _key, p) => {
-  if (role === 'space') return [noise(0, 'lowpass', 450 * p, 0.7, 0.05, 0.6), tone(0, 'sine', 110 * p, 80 * p, 0.06, 0.4), noise(0, 'bandpass', 1500, 1, 0.01, 0.15)];
+  // The space bar only moves the carriage: a muted thump.
+  if (role === 'space') {
+    return [noise(0, 'lowpass', 450 * p, 0.7, 0.05, 0.6), tone(0, 'sine', 110 * p, 80 * p, 0.06, 0.4), noise(0, 'bandpass', 1500, 1, 0.01, 0.15)];
+  }
   if (role === 'enter') {
     // The bell, then the carriage zips back and knocks home.
     return [

@@ -86,7 +86,10 @@ export const readLocal = async (): Promise<LocalState> => {
     // An uploaded picture lives on one device only; the others keep their own background.
     state.prefs.set(`studio.${key}`, {value: studio[key], keep: key === 'background' && studio.background === 'custom'});
   }
-  for (const key of typingPrefs) state.prefs.set(`typing.${key}`, {value: typingSettings[key]});
+  for (const key of typingPrefs) {
+    // The user's own key sound is a file on one device only; the others keep their own choice.
+    state.prefs.set(`typing.${key}`, {value: typingSettings[key], keep: key === 'switchSound' && typingSettings.switchSound === 'custom'});
+  }
   for (const t of typingSettings.customTexts) state.texts.set(t.id, {value: t});
   return state;
 };

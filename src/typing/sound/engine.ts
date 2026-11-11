@@ -58,7 +58,14 @@ export const impulseFor = (ctx: BaseAudioContext, seconds = 1.3) => {
  * Schedules a key's layers from `when` on any audio context, live or offline. Returns the sources it started
  * and when the last layer has died away.
  */
-export const scheduleVoices = (ctx: BaseAudioContext, out: AudioNode, noiseBuffer: AudioBuffer, voices: Voice[], when: number, curve?: Float32Array<ArrayBuffer>) => {
+export const scheduleVoices = (
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  noiseBuffer: AudioBuffer,
+  voices: Voice[],
+  when: number,
+  curve?: Float32Array<ArrayBuffer>,
+) => {
   const sources: AudioScheduledSourceNode[] = [];
   let last = when;
   for (const v of voices) {

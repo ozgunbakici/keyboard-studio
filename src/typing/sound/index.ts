@@ -9,9 +9,20 @@ import {mixFor, voicesFor, type SwitchSound} from './packs';
  */
 
 export {soundPacks, switchSounds, voicesFor, mixFor, type SoundPack, type SwitchSound} from './packs';
-export {keyRole, keySize, keyHash, type KeyRole, type KeySize, type Voice} from './voice';
+export {keyRole, keySize, keyHash, voiceEnd, type KeyRole, type KeySize, type Voice} from './voice';
 export {keyNote, pentatonic} from './fantasy';
-export {CHOKE_AFTER, MAX_RINGING, chokeOld, createKeyEngine, createOutput, limiterCurve, noiseFor, scheduleVoices, type KeyEngine, type SamplePlay} from './engine';
+export {
+  CHOKE_AFTER,
+  MAX_RINGING,
+  chokeOld,
+  createKeyEngine,
+  createOutput,
+  limiterCurve,
+  noiseFor,
+  scheduleVoices,
+  type KeyEngine,
+  type SamplePlay,
+} from './engine';
 export {customSample, loadCustomSound, removeCustomSound, sampleFor, setCustomSound, useCustomSound} from './custom';
 
 /** Plays one key press or release of a pack on an engine, from `when`; works on live and offline contexts. */
